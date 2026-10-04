@@ -60,9 +60,12 @@ class Agent:
         return result, time.perf_counter() - t0
 
     # ---------- 主流程 ----------
-    def ask(self, question: str) -> AgentResponse:
+    def ask(self, question: str, on_step=None) -> AgentResponse:
+        """on_step：選填的回呼函式，每進入一個階段就呼叫一次（給介面顯示進度用）"""
+        notify = on_step or (lambda msg: None)
         resp = AgentResponse(question=question)
 
+        notify("🧭 判斷問題類型…")
         decision, resp.timings["路由判斷"] = self._timed(
             route_question, question, self.gen_client, self.gen_model)
         resp.route, resp.route_reason = decision.route.value, decision.reason
@@ -72,14 +75,17 @@ class Agent:
             resp.answer = OUT_OF_SCOPE_MSG
 
         elif decision.route == Route.SQL:
+            notify("📊 查詢財報資料庫…")
             out, resp.timings["數據查詢"] = self._timed(self._run_sql, decision.sql_question)
             resp.answer, resp.sql = out["answer"], out.get("sql", "")
 
         elif decision.route == Route.RAG:
+            notify("📚 搜尋年報與法說會…")
             out, resp.timings["文件檢索"] = self._timed(self._run_rag, decision.rag_question)
             resp.answer = out["answer"]
 
         else:  # BOTH：兩條路同時執行
+            notify("📊 查詢財報資料庫，同時 📚 搜尋年報與法說會…")
             with ThreadPoolExecutor(max_workers=2) as pool:
                 fa = pool.submit(self._timed, self._run_sql, decision.sql_question)
                 fb = pool.submit(self._timed, self._run_rag, decision.rag_question)
