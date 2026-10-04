@@ -48,6 +48,14 @@ RAG_RULES = """你是專業的台股產業分析助理。請只根據「參考�
 
 NO_RESULT = "在目前的文件（台積電年報、法說會逐字稿）中，沒有找到和這個問題相關的內容。"
 
+ABSENCE_WORDS = ("沒有提到", "未提及", "沒有提及", "並未提到", "沒有說明", "並未說明")
+
+
+def strip_citations_in_absence(answer: str) -> str:
+    """規則 7 的程式保險：說明「資料中沒有提到」的句子，不應該有引用編號"""
+    sentences = re.split(r"(?<=[。\n])", answer)
+    return "".join(re.sub(r"\s*\[\d+\]", "", s) if any(w in s for w in ABSENCE_WORDS) else s
+                   for s in sentences)
 
 # ---------- 3. 引用驗證：由程式決定最後列出哪些來源 ----------
 def verify_citations(answer: str, n_sources: int) -> tuple[str, list[int]]:
@@ -86,6 +94,7 @@ def generate_rag_answer(question: str, hits: list[Hit], client, model: str) -> d
         previews = [f"[{i}] {h.text.split(chr(10), 1)[-1][:120]}…" for i, h in enumerate(hits, 1)]
         answer = "（自動摘要暫時無法使用，以下為相關段落）\n\n" + "\n\n".join(previews)
 
+    answer = strip_citations_in_absence(answer)
     answer, cited = verify_citations(answer, len(hits))
     if not cited:
         logger.warning("回答中沒有任何引用編號，列出所有參考資料")
