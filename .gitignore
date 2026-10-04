@@ -4,3 +4,5 @@ __pycache__/
 *.db
 data/chroma/
 .idea/
+data/docs/
+data/reference/
