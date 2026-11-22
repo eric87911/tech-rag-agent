@@ -1,0 +1,74 @@
+{
+  "model": "gemini-2.5-flash",
+  "runs": 3,
+  "records": [
+    {
+      "id": "negative_margin",
+      "run": 1,
+      "question": "台灣塑膠 2025Q4 的營業利益率是多少？",
+      "answer": "台灣塑膠 2025Q4 的營業利益率是 -5.76%。",
+      "stop_reason": "done",
+      "tools": [
+        "search_company",
+        "get_ratio"
+      ],
+      "guard_triggered": false,
+      "seconds": 4.8,
+      "passed": true,
+      "infra_error": false,
+      "failures": [],
+      "unsourced": []
+    },
+    {
+      "id": "negative_margin",
+      "run": 2,
+      "question": "台灣塑膠 2025Q4 的營業利益率是多少？",
+      "answer": "台灣塑膠（1301）2025Q4 的營業利益率是 -5.76%。",
+      "stop_reason": "done",
+      "tools": [
+        "search_company",
+        "get_ratio"
+      ],
+      "guard_triggered": false,
+      "seconds": 6.0,
+      "passed": true,
+      "infra_error": false,
+      "failures": [],
+      "unsourced": []
+    },
+    {
+      "id": "negative_margin",
+      "run": 3,
+      "question": "台灣塑膠 2025Q4 的營業利益率是多少？",
+      "answer": "台灣塑膠 2025Q4 的營業利益率是 -5.76%。",
+      "stop_reason": "done",
+      "tools": [
+        "search_company",
+        "get_ratio"
+      ],
+      "guard_triggered": false,
+      "seconds": 4.3,
+      "passed": true,
+      "infra_error": false,
+      "failures": [],
+      "unsourced": []
+    }
+  ],
+  "summary": {
+    "total_runs": 3,
+    "infra_errors": 0,
+    "pass_rate": 1.0,
+    "tool_call_rate_on_data_questions": 1.0,
+    "guard_triggered_runs": 0,
+    "ungrounded_stops": 0,
+    "runs_with_unsourced_numbers": 0,
+    "per_question": {
+      "negative_margin": {
+        "passed": 3,
+        "total": 3,
+        "avg_tools": 2,
+        "avg_seconds": 5.0
+      }
+    }
+  }
+}
