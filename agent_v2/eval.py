@@ -47,6 +47,12 @@ def check_api_version() -> None:
                            "請按 Ctrl+C 停掉 uvicorn，再用 uvicorn api.main:app --reload 重新啟動。")
 
 
+def _signed(v: float) -> list:
+    """數值的可接受寫法；負值必須帶負號或寫成「負」，不能只寫絕對值（否則虧損會被誤讀成獲利）"""
+    a = f"{abs(v):.2f}"
+    return [f"{v:.2f}"] if v >= 0 else [f"-{a}", f"−{a}", f"負{a}"]
+
+
 def build_questions() -> list:
     """每題：tools_any=至少要呼叫其中一個；forbid_tools / no_tools；facts=多組「任一寫法出現即可」，全部組都要命中；
     forbid_numbers=答案不可出現帶單位的數字（查不到資料時不可編造）"""
@@ -84,7 +90,7 @@ def build_questions() -> list:
              tools_any=["get_ratio"],
              facts=[[gm_all["highest"]["period"]], [f"{gm_all['highest']['ratio_pct']:.2f}"]]),
         dict(id="negative_margin", question="台灣塑膠 2025Q4 的營業利益率是多少？",
-             tools_any=["get_ratio"], facts=[[f"{abs(pm['ratio_pct']):.2f}"]]),
+             tools_any=["get_ratio"], facts=[_signed(pm["ratio_pct"])]),
         dict(id="ranking", question="2025Q4 營收前三名是哪些公司？",
              tools_any=["get_ranking"],
              facts=rank_groups + [["42", "缺", "沒有資料", "未參與", "資料缺"]]),   # 最後一組：必須揭露有公司缺資料
@@ -122,8 +128,9 @@ def unsourced_numbers(answer: str, tool_calls: list) -> list:
     out = []
     for m in loop.NUMBER_PATTERN.finditer(answer):
         n = re.match(r"[\d,]*\.?\d+", m.group(0)).group(0)
-        if round(float(n.replace(",", "")), 6) not in sourced:
-            out.append(n)
+        sign = -1 if re.search(r"(?:-|−|負)\s*$", answer[:m.start()]) else 1   # 正負號寫反也要抓得到（允許「負 5.76」有空格）
+        if round(sign * float(n.replace(",", "")), 6) not in sourced:
+            out.append(("-" if sign < 0 else "") + n)
     return out
 
 
