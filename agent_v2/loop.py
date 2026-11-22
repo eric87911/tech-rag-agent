@@ -53,7 +53,8 @@ def has_unsourced_numbers(text: str, tool_calls: list) -> bool:
 class AgentResult:
     answer: str
     stop_reason: str                 # done / max_steps / empty / error / ungrounded
-    tool_calls: list = field(default_factory=list)   # [{"name","args","error"}]，之後做評估與追蹤要用
+    tool_calls: list = field(default_factory=list)   # [{"name","args","error","result"}]，評估與追蹤要用
+    guard_triggered: bool = False    # 「沒查資料就報數字」的保險是否出手過
 
 
 def get_client():
@@ -89,24 +90,24 @@ def run_agent(question: str, client, model: str, max_steps: int = MAX_STEPS) -> 
             response = client.models.generate_content(model=model, contents=contents, config=config)
         except Exception as e:
             logger.error(f"第 {step} 輪呼叫 Gemini 失敗：{type(e).__name__}: {e}")
-            return AgentResult("抱歉，系統暫時無法處理這個問題，請稍後再試。", "error", log)
+            return AgentResult("抱歉，系統暫時無法處理這個問題，請稍後再試。", "error", log, guard_triggered=nudged)
 
         calls = response.function_calls
         if not calls:                                   # 沒有要呼叫工具 → 這就是最終答案
             text = (response.text or "").strip()
             if not text:
                 logger.warning("模型回傳空白答案")
-                return AgentResult("抱歉，這次沒有產生有效的回答，請換個方式再問一次。", "empty", log)
+                return AgentResult("抱歉，這次沒有產生有效的回答，請換個方式再問一次。", "empty", log, guard_triggered=nudged)
             if has_unsourced_numbers(text, log):          # 保險：沒查資料就報數字，攔下來
                 logger.warning("答案含數字但沒有呼叫任何工具，疑似憑記憶捏造")
                 if nudged:                                # 已經提醒過一次還是這樣 → 放棄這個答案
-                    return AgentResult(UNGROUNDED_ANSWER, "ungrounded", log)
+                    return AgentResult(UNGROUNDED_ANSWER, "ungrounded", log, guard_triggered=nudged)
                 nudged = True
                 contents.append(response.candidates[0].content)
                 contents.append(types.Content(role="user", parts=[types.Part.from_text(text=NUDGE)]))
                 continue
             logger.info(f"第 {step} 輪完成，共呼叫工具 {len(log)} 次")
-            return AgentResult(text, "done", log)
+            return AgentResult(text, "done", log, guard_triggered=nudged)
 
         # 重要：必須把模型這一輪「原封不動」放回對話紀錄（內含它的函式呼叫與思考簽章），不能自己重組
         contents.append(response.candidates[0].content)
@@ -121,12 +122,13 @@ def run_agent(question: str, client, model: str, max_steps: int = MAX_STEPS) -> 
             else:
                 seen.add(signature)
                 result = tools.execute_tool(call.name, args)
-            log.append({"name": call.name, "args": args, "error": result.get("error") if isinstance(result, dict) else None})
+            log.append({"name": call.name, "args": args, "error": result.get("error") if isinstance(result, dict) else None,
+                    "result": result})
             parts.append(types.Part.from_function_response(name=call.name, response={"result": result}))
         contents.append(types.Content(role="user", parts=parts))
 
     logger.warning(f"超過 {max_steps} 輪仍未得到答案，中止")
-    return AgentResult("這個問題需要的查詢步驟過多，我沒能在限制內完成。請把問題拆小一點再問。", "max_steps", log)
+    return AgentResult("這個問題需要的查詢步驟過多，我沒能在限制內完成。請把問題拆小一點再問。", "max_steps", log, guard_triggered=nudged)
 
 
 if __name__ == "__main__":
