@@ -127,6 +127,19 @@ class SkippedPeriod(BaseModel):
     reason: str
 
 
+class RatioExtreme(BaseModel):
+    period: str
+    ratio_pct: float
+
+
+class RatioSummary(BaseModel):
+    first: RatioExtreme
+    latest: RatioExtreme
+    highest: RatioExtreme
+    lowest: RatioExtreme
+    change_pp: float = Field(description="最新一期減第一期，單位是百分點（percentage points）")
+
+
 class RatiosResponse(BaseModel):
     code: str
     company_name: str
@@ -134,4 +147,5 @@ class RatiosResponse(BaseModel):
     display_name: str
     formula: str
     data: list[RatioPoint]
+    summary: RatioSummary | None = Field(description="最高、最低、首尾變化；由程式計算，沒有資料時為 None")
     skipped_periods: list[SkippedPeriod] = Field(description="無法計算的期間與原因（缺資料不會被默默略過）")

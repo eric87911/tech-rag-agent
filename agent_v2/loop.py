@@ -6,6 +6,7 @@
 import json
 import logging
 import os
+import re
 from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
@@ -26,20 +27,32 @@ SYSTEM_PROMPT = """你是台股財報問答助理。今天是 {today}。
 資料涵蓋 52 家台股公司 2021Q1～{latest} 的季度財報。「最新一季」指 {latest}，「去年」「今年」請依今天日期換算。
 
 規則：
-1. 所有數字都必須來自工具回傳，不得憑記憶回答。查不到就明說查不到。
+1. 所有數字都必須來自工具回傳，不得憑記憶回答。即使你覺得自己知道答案，只要答案裡有百分比、金額、EPS 或排名，就必須先呼叫工具。查不到就明說查不到。
 2. 使用者提到公司名稱時，先用 search_company 取得代號。若回傳多家公司，列出選項請使用者確認，不要自己挑一家。
 3. 描述金額時優先使用工具回傳的 value_display（已換算成兆元、億元）；需要精確數字時再附上原值與單位（原值單位為新台幣千元，EPS 為元）。
-4. 毛利率、營業利益率、營業費用率一律用 get_ratio 取得，不要自己拿兩個數字相除。其他比率或成長率需要計算時，列出用到的數字與算式。
+4. 毛利率、營業利益率、營業費用率一律用 get_ratio 取得，不要自己拿兩個數字相除。說明最高、最低、最新或變化幅度時，直接引用回傳的 summary，不要自己從數列中比較。其他比率或成長率需要計算時，列出用到的數字與算式。
 5. 排名結果若有 missing_companies，必須說明：排名只涵蓋有資料的 N 家（共 M 家），並點名缺資料的公司。比率結果若有 skipped_periods，必須說明哪些期間缺資料。
 6. 你目前沒有文件檢索工具，無法回答經營策略、原因、看法。問題同時包含「數字」與「原因」時（例如「毛利率為什麼上升」），必須先用工具查出數字部分並回答（例如毛利率的走勢），再明確說明原因部分目前無法回答。不可以因為其中一半答不了就整題放棄，也不要請使用者自己去計算。
 7. 不提供投資建議，不預測股價。
 8. 工具回傳錯誤時，如實告知使用者原因，不要編造資料。"""
 
 
+# 答案裡出現「帶單位的數字」（百分比、元、兆、億、千元）→ 視為在報告數字
+NUMBER_PATTERN = re.compile(r"\d[\d,]*(?:\.\d+)?\s*(?:%|％|兆|億|千元|元)")
+NUDGE = ("你的回答包含數字，但這次對話還沒有呼叫任何工具。所有數字都必須來自工具回傳，"
+         "請先呼叫適當的工具，再根據工具結果回答。")
+UNGROUNDED_ANSWER = "抱歉，我無法確認這個答案的數字來源，所以不提供。請換個方式再問一次。"
+
+
+def has_unsourced_numbers(text: str, tool_calls: list) -> bool:
+    """還沒呼叫過任何工具，答案卻在報告數字 → 這些數字只可能來自模型的記憶，不可信"""
+    return not tool_calls and bool(NUMBER_PATTERN.search(text))
+
+
 @dataclass
 class AgentResult:
     answer: str
-    stop_reason: str                 # done / max_steps / empty / error
+    stop_reason: str                 # done / max_steps / empty / error / ungrounded
     tool_calls: list = field(default_factory=list)   # [{"name","args","error"}]，之後做評估與追蹤要用
 
 
@@ -69,6 +82,7 @@ def run_agent(question: str, client, model: str, max_steps: int = MAX_STEPS) -> 
     )
     contents = [types.Content(role="user", parts=[types.Part.from_text(text=question)])]
     log, seen = [], set()
+    nudged = False
 
     for step in range(1, max_steps + 1):
         try:
@@ -83,6 +97,14 @@ def run_agent(question: str, client, model: str, max_steps: int = MAX_STEPS) -> 
             if not text:
                 logger.warning("模型回傳空白答案")
                 return AgentResult("抱歉，這次沒有產生有效的回答，請換個方式再問一次。", "empty", log)
+            if has_unsourced_numbers(text, log):          # 保險：沒查資料就報數字，攔下來
+                logger.warning("答案含數字但沒有呼叫任何工具，疑似憑記憶捏造")
+                if nudged:                                # 已經提醒過一次還是這樣 → 放棄這個答案
+                    return AgentResult(UNGROUNDED_ANSWER, "ungrounded", log)
+                nudged = True
+                contents.append(response.candidates[0].content)
+                contents.append(types.Content(role="user", parts=[types.Part.from_text(text=NUDGE)]))
+                continue
             logger.info(f"第 {step} 輪完成，共呼叫工具 {len(log)} 次")
             return AgentResult(text, "done", log)
 

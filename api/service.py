@@ -162,5 +162,14 @@ def compute_ratios(code: str, metric: str, period_from: str | None, period_to: s
         else:
             data.append({"period": period, "ratio_pct": round(n / d * 100, 2),
                          "numerator": n, "denominator": d})
+    summary = None
+    if data:
+        pick = lambda x: {"period": x["period"], "ratio_pct": x["ratio_pct"]}
+        highest = max(data, key=lambda x: x["ratio_pct"])      # 最高 / 最低由程式找，模型不要自己掃數列
+        lowest = min(data, key=lambda x: x["ratio_pct"])
+        summary = {"first": pick(data[0]), "latest": pick(data[-1]),
+                   "highest": pick(highest), "lowest": pick(lowest),
+                   "change_pp": round(data[-1]["ratio_pct"] - data[0]["ratio_pct"], 2)}
     return {"company_name": rows[0]["company_name"], "display_name": label,
-            "formula": f"{num_item} ÷ {den_item}", "data": data, "skipped_periods": skipped}
+            "formula": f"{num_item} ÷ {den_item}", "data": data, "summary": summary,
+            "skipped_periods": skipped}

@@ -77,7 +77,7 @@ TOOL_DECLARATIONS.append(
         name="get_ratio",
         description=("計算「某一家公司」的財務比率（毛利率、營業利益率、營業費用率）在一段期間的走勢。"
                      "比率由程式計算，需要比率時一律用這個工具，不要自己拿兩個數字相除。"
-                     "回傳的 ratio_pct 是百分比。若 skipped_periods 不是空的，回答時必須說明哪些期間缺資料。"
+                     "回傳的 ratio_pct 是百分比。要說明最高、最低、最新、首尾變化時，直接引用 summary，不要自己掃描 data 比較。若 skipped_periods 不是空的，回答時必須說明哪些期間缺資料。"
                      "資料範圍 2021Q1～2025Q4，沒有指定期間會回傳全部期間。"),
         parameters=S(type="OBJECT", properties={
             "code": _str("股票代號，例如 2330（先用 search_company 取得）"),
