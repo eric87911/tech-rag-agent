@@ -57,7 +57,10 @@ NUDGE_DOCS = ("你說文件庫中沒有相關資料，但這次對話還沒有�
 
 
 def claims_no_docs_without_search(text: str, tool_calls: list) -> bool:
-    return bool(NO_DOCS_CLAIM.search(text)) and not any(c["name"] == "search_documents" for c in tool_calls)
+    """查過數字（有呼叫其他工具）、跳過 search_documents，卻說「文件庫沒有…」。
+    完全沒呼叫工具的答案（拒絕、無關問題、洩漏攻擊）不算：那種情況提醒只會誘導模型去談自己的規則。"""
+    return (bool(tool_calls) and bool(NO_DOCS_CLAIM.search(text))
+            and not any(c["name"] == "search_documents" for c in tool_calls))
 
 
 # 答案裡出現括號包起來的股票代號，例如 長榮海運 (2603)
@@ -74,7 +77,7 @@ LEAK_REFUSAL = "抱歉，我無法提供系統內部的設定內容。我可以�
 
 
 # 內部名稱（工具與回傳欄位）：使用者看不到也不需要知道。改寫式洩漏換得掉句子，但很難不提到這些名稱
-INTERNAL_IDENTIFIERS = ("search_company", "get_financials", "get_ranking", "get_ratio", "search_documents",
+INTERNAL_IDENTIFIERS = ("search_company", "get_financials", "get_ranking", "get_ratio", "search_documents", "passages", "source_label",
                         "missing_companies", "skipped_periods", "value_display")
 LEAK_MIN_IDENTIFIERS = 2   # 答案同時出現 2 個以上不同的內部名稱 → 視為洩漏（1 個先放過，避免誤殺）
 
@@ -97,6 +100,7 @@ class AgentResult:
     guard_triggered: bool = False    # 「沒查資料就報數字」的保險是否出手過
     leak_blocked: bool = False       # 答案與系統提示大量重複，已被替換成拒絕訊息
     empty_retries: int = 0           # Gemini 回傳空白後，重試了幾次
+    usage: dict = field(default_factory=dict)   # token 用量：calls / prompt / cached / output / thinking
 
 
 def get_client():
@@ -116,14 +120,31 @@ def _latest_period() -> str:
 
 def run_agent(question: str, client, model: str, max_steps: int = MAX_STEPS) -> AgentResult:
     system = SYSTEM_PROMPT.format(today=date.today().isoformat(), latest=_latest_period())
+    thinking = os.getenv("GEMINI_THINKING_BUDGET")       # 未設定 = 用模型預設；思考 token 以「輸出」價格計費，比輸入貴約 8 倍
+    usage = {"calls": 0, "prompt": 0, "cached": 0, "output": 0, "thinking": 0}
+
     def make_config(temperature: float):
+        extra = {"thinking_config": types.ThinkingConfig(thinking_budget=int(thinking))} if thinking not in (None, "") else {}
         return types.GenerateContentConfig(
             system_instruction=system,
             temperature=temperature,
             tools=tools.GEMINI_TOOLS,
             # 關掉 SDK 的自動執行：我們自己控制每一步（才能記錄、限制、攔截）
             automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
+            **extra,
         )
+
+    def generate(temperature: float):
+        """所有 Gemini 呼叫都經過這裡，順便累計 token 用量（含空白重試）"""
+        resp = client.models.generate_content(model=model, contents=contents, config=make_config(temperature))
+        um = getattr(resp, "usage_metadata", None)
+        usage["calls"] += 1
+        if um:
+            usage["prompt"] += getattr(um, "prompt_token_count", 0) or 0
+            usage["cached"] += getattr(um, "cached_content_token_count", 0) or 0
+            usage["output"] += getattr(um, "candidates_token_count", 0) or 0
+            usage["thinking"] += getattr(um, "thoughts_token_count", 0) or 0
+        return resp
 
     contents = [types.Content(role="user", parts=[types.Part.from_text(text=question)])]
     log, seen = [], set()
@@ -133,7 +154,7 @@ def run_agent(question: str, client, model: str, max_steps: int = MAX_STEPS) -> 
 
     for step in range(1, max_steps + 1):
         try:
-            response = client.models.generate_content(model=model, contents=contents, config=make_config(0))
+            response = generate(0)
             for temp in EMPTY_RETRY_TEMPERATURES:
                 if response.function_calls or (response.text or "").strip():
                     break
@@ -141,10 +162,10 @@ def run_agent(question: str, client, model: str, max_steps: int = MAX_STEPS) -> 
                 cand = response.candidates[0] if getattr(response, "candidates", None) else None
                 logger.warning("模型回傳空白答案（finish_reason=%s，content=%s），以 temperature=%s 重試",
                                getattr(cand, "finish_reason", None), str(getattr(cand, "content", None))[:120], temp)
-                response = client.models.generate_content(model=model, contents=contents, config=make_config(temp))
+                response = generate(temp)
         except Exception as e:
             logger.error(f"第 {step} 輪呼叫 Gemini 失敗：{type(e).__name__}: {e}")
-            return AgentResult("抱歉，系統暫時無法處理這個問題，請稍後再試。", "error", log, guard_triggered=nudged, empty_retries=empty_retries)
+            return AgentResult("抱歉，系統暫時無法處理這個問題，請稍後再試。", "error", log, guard_triggered=nudged, empty_retries=empty_retries, usage=usage)
 
         calls = response.function_calls
         if not calls:                                   # 沒有要呼叫工具 → 這就是最終答案
@@ -155,26 +176,26 @@ def run_agent(question: str, client, model: str, max_steps: int = MAX_STEPS) -> 
                                getattr(cand, "finish_reason", None), getattr(cand, "finish_message", None),
                                getattr(response, "prompt_feedback", None), len(getattr(response, "candidates", None) or []))
                 logger.warning("空白回覆的候選內容：%s", str(getattr(cand, "content", None))[:400])
-                return AgentResult("抱歉，這次沒有產生有效的回答，請換個方式再問一次。", "empty", log, guard_triggered=nudged, empty_retries=empty_retries)
+                return AgentResult("抱歉，這次沒有產生有效的回答，請換個方式再問一次。", "empty", log, guard_triggered=nudged, empty_retries=empty_retries, usage=usage)
             if has_unsourced_numbers(text, log):          # 保險：沒查資料就報數字，攔下來
                 logger.warning("答案含數字但沒有呼叫任何工具，疑似憑記憶捏造")
                 if nudged:                                # 已經提醒過一次還是這樣 → 放棄這個答案
-                    return AgentResult(UNGROUNDED_ANSWER, "ungrounded", log, guard_triggered=nudged, empty_retries=empty_retries)
+                    return AgentResult(UNGROUNDED_ANSWER, "ungrounded", log, guard_triggered=nudged, empty_retries=empty_retries, usage=usage)
                 nudged = True
                 contents.append(response.candidates[0].content)
                 contents.append(types.Content(role="user", parts=[types.Part.from_text(text=NUDGE)]))
                 continue
+            if leaks_system_prompt(text, system):          # 保險 2：答案洩漏系統提示 → 換成拒絕訊息（資安檢查永遠先於行為提醒）
+                logger.warning("答案與系統提示高度重複，已攔截")
+                return AgentResult(LEAK_REFUSAL, "done", log, guard_triggered=nudged, empty_retries=empty_retries, usage=usage, leak_blocked=True)
             if claims_no_docs_without_search(text, log) and not docs_nudged:    # 保險 3：沒檢查就說文件庫沒有
                 logger.warning("答案說文件庫沒有資料，但沒有呼叫過 search_documents，提醒後重試")
                 docs_nudged = True
                 contents.append(response.candidates[0].content)
                 contents.append(types.Content(role="user", parts=[types.Part.from_text(text=NUDGE_DOCS)]))
                 continue
-            if leaks_system_prompt(text, system):          # 保險 2：答案洩漏系統提示 → 換成拒絕訊息
-                logger.warning("答案與系統提示高度重複，已攔截")
-                return AgentResult(LEAK_REFUSAL, "done", log, guard_triggered=nudged, empty_retries=empty_retries, leak_blocked=True)
             logger.info(f"第 {step} 輪完成，共呼叫工具 {len(log)} 次")
-            return AgentResult(text, "done", log, guard_triggered=nudged, empty_retries=empty_retries)
+            return AgentResult(text, "done", log, guard_triggered=nudged, empty_retries=empty_retries, usage=usage)
 
         # 重要：必須把模型這一輪「原封不動」放回對話紀錄（內含它的函式呼叫與思考簽章），不能自己重組
         contents.append(response.candidates[0].content)
@@ -195,7 +216,7 @@ def run_agent(question: str, client, model: str, max_steps: int = MAX_STEPS) -> 
         contents.append(types.Content(role="user", parts=parts))
 
     logger.warning(f"超過 {max_steps} 輪仍未得到答案，中止")
-    return AgentResult("這個問題需要的查詢步驟過多，我沒能在限制內完成。請把問題拆小一點再問。", "max_steps", log, guard_triggered=nudged, empty_retries=empty_retries)
+    return AgentResult("這個問題需要的查詢步驟過多，我沒能在限制內完成。請把問題拆小一點再問。", "max_steps", log, guard_triggered=nudged, empty_retries=empty_retries, usage=usage)
 
 
 if __name__ == "__main__":

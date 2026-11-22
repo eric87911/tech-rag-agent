@@ -1,0 +1,183 @@
+{
+  "model": "gemini-2.5-flash",
+  "runs": 1,
+  "records": [
+    {
+      "id": "d_ai",
+      "run": 1,
+      "question": "台積電怎麼看 AI 需求？",
+      "answer": "台積電對 AI 需求持非常樂觀的看法，認為 AI 相關需求持續極為強勁。\n\n根據台積電 2026 年第一季法說會逐字稿：\n*   AI 相關需求持續極為強勁。從生成式 AI 與查詢模式轉向代理式 AI 以及指令與行動模式，正使得 token 的消耗量再上升一個台階，這推動了對更多運算的需求，進而支撐先進矽晶的強勁需求（來源：台積電 2026Q1 法說會逐字稿（第三方整理）｜C.C. Wei）。\n*   台積電的客戶以及客戶的客戶（主要為雲端服務供應商）持續向台積電釋出非常強烈的訊號與正向展望。因此，台積電對多年期 AI 巨型趨勢的信心仍然很高，並相信半導體需求將持續是非常根本且關鍵的（來源：台積電 2026Q1 法說會逐字稿（第三方整理）｜C.C. Wei）。\n*   台積電預期 AI 加速器營收到 2029 年將以約中到高 50% 的年複合成長率（CAGR）成長，並持續看到強勁需求（來源：台積電 2026Q1 法說會逐字稿（第三方整理）｜Q&A｜Bruce Lu 提問，Jeff Su、C.C. Wei 回答）。\n\n根據台積電 2025 年報：\n*   儘管總體經濟的不確定性持續存在，台積電預期 AI 相關的需求將持續強勁。市場對台積電的先進製程、特殊製程和先進封裝技術有強勁需求（來源：台積電 2025 年報 致股東報告書｜第 3 頁）。\n*   台積電觀察到 AI 模型在消費端、企業端和主權 AI 領域的採用率持續提升，這帶動了對更多運算能力的需求，進而支持了對先進半導體晶片的強勁需求（來源：台積電 2025 年報 致股東報告書｜第 3 頁）。\n*   台積電認為正邁入一個 AI 賦能的世界，人工智慧不僅被運用在資料中心，未來也將應用在個人電腦（PC）、智慧型手機、汽車，甚至物聯網設備中（來源：台積電 2025 年報 致股東報告書｜第 3 頁）。\n*   2025 年 AI 市場持續有非常正面的發展，大型語言模型處理文本的詞元（token）數量呈現爆炸式成長，顯示消費端 AI 模型的採用正在增加。企業 AI 也是另一個需求的來源，主權 AI 需求也日益興起（來源：台積電 2025 年報 致股東報告書｜第 2 頁）。\n*   台積電將 AI 架構整合至智慧派工系統，優化排程引擎，擴展排程處理範疇並顯著加速運算效能，以最大化機台生產效能（來源：台積電 2025 年報 營運概況｜第 7 頁）。",
+      "stop_reason": "done",
+      "tools": [
+        "search_documents"
+      ],
+      "guard_triggered": false,
+      "leak_blocked": false,
+      "empty_retries": 0,
+      "usage": {
+        "calls": 2,
+        "prompt": 6685,
+        "cached": 3535,
+        "output": 753,
+        "thinking": 489
+      },
+      "seconds": 8.0,
+      "passed": true,
+      "infra_error": false,
+      "failures": [],
+      "unsourced": []
+    },
+    {
+      "id": "d_cowos",
+      "run": 1,
+      "question": "台積電的先進封裝產能狀況如何？",
+      "answer": "台積電的先進封裝產能目前非常吃緊，公司正努力提升自有產能，同時也與 OSAT 合作夥伴合作，希望能增加產能以支持客戶需求（來源：台積電 2026Q1 法說會逐字稿）。\n\n在技術發展方面：\n*   **CoWoS®**：自 2023 年以來，因 AI 需求激增而強勁成長。3.5 倍光罩尺寸的 CoWoS®-L 已於 2024 年投入生產，5.5 倍光罩尺寸的 CoWoS®-L 也即將完成驗證，並計劃於 2026 年量產，以滿足 AI 與高效能運算更高的性能目標。9.5 倍光罩尺寸 CoWoS®-L 的進一步演進開發也進展順利（來源：台積電 2025 年報 營運概況）。\n*   **InFO_PoP**：台積電持續領先業界進行 N3P 相關晶片量產，以支援行動應用的需求，實現更高效率與更低功耗（來源：台積電 2025 年報 營運概況）。\n*   台積電也持續開發其他先進封裝和 3D 晶片堆疊技術，包括 TSMC-SoIC® 和 TSMC-COUPETM，以在可負擔的成本下實現更低功耗的大規模互連，支持客戶需求（來源：台積電 2025 年報 致股東報告書）。",
+      "stop_reason": "done",
+      "tools": [
+        "search_documents"
+      ],
+      "guard_triggered": false,
+      "leak_blocked": false,
+      "empty_retries": 0,
+      "usage": {
+        "calls": 2,
+        "prompt": 6872,
+        "cached": 3546,
+        "output": 379,
+        "thinking": 1089
+      },
+      "seconds": 8.8,
+      "passed": true,
+      "infra_error": false,
+      "failures": [],
+      "unsourced": []
+    },
+    {
+      "id": "d_why_rev",
+      "run": 1,
+      "question": "台積電營收為什麼成長？",
+      "answer": "台積電的營收在 2021Q1 至 2025Q4 期間呈現成長趨勢，從 2021Q1 的 3,624.1 億元成長至 2025Q4 的 1.05 兆元。\n\n根據文件庫資料，台積電營收成長的原因主要有：\n*   **先進製程技術的強勁需求**：2026 年第一季營收略高於財測指引，主要受惠於先進製程技術的強勁需求，預期 2026 年第二季業務也將持續受此支撐（來源：台積電 2026Q1 法說會逐字稿（第三方整理）｜C.C. Wei）。\n*   **AI 相關需求強勁**：2025 年是強勁成長的一年，觀察到人工智慧（AI）相關的需求在全年間保持強勁，大型語言模型處理文本的詞元（token）數量呈現爆炸式成長，顯示消費端 AI 模型的採用正在增加。企業 AI 也是另一個需求來源，主權 AI 需求也日益興起（來源：台積電 2025 年報 致股東報告書｜第 2 頁）。\n*   **非 AI 相關終端市場復甦**：2025 年非 AI 相關的終端市場已觸底並呈現溫和復甦（來源：台積電 2025 年報 致股東報告書｜第 2 頁）。\n*   **技術領先與客戶基礎廣泛**：憑藉著顯著的技術領先及廣泛的客戶基礎，台積電 2025 年營收年增 35.9%（以美元計），營收和每股盈餘雙雙創下歷史新高（來源：台積電 2025 年報 致股東報告書｜第 2 頁）。\n*   **特定應用驅動**：智慧型手機（尤其是高階智慧型手機）、高效能運算（HPC）、汽車及物聯網（IoT）應用驅動市場對先進製程技術（7 奈米及以下）的需求持續強勁。其中，3 奈米製程技術在 2025 年已進入量產的第三個完整年度，占台積公司該年度整體晶圓銷售金額的 24%（來源：台積電 2025 年報 致股東報告書｜第 2 頁；台積電 2026Q1 法說會逐字稿（第三方整理）｜Q&A｜Sunny Lin 提問，Jeff Su、Wendell Huang、C.C. Wei 回答）。\n*   **客戶產品需求變動**：銷貨金額與比例變動主要係客戶產品需求變動所致（來源：台積電 2025 年報 營運概況｜第 8 頁）。",
+      "stop_reason": "done",
+      "tools": [
+        "search_company",
+        "get_financials",
+        "search_documents"
+      ],
+      "guard_triggered": false,
+      "leak_blocked": false,
+      "empty_retries": 0,
+      "usage": {
+        "calls": 4,
+        "prompt": 14593,
+        "cached": 8741,
+        "output": 731,
+        "thinking": 1938
+      },
+      "seconds": 16.2,
+      "passed": true,
+      "infra_error": false,
+      "failures": [],
+      "unsourced": []
+    },
+    {
+      "id": "d_other_why",
+      "run": 1,
+      "question": "聯發科毛利率為什麼下降？",
+      "answer": "聯發科（2454）的毛利率在 2025Q4 為 46.13%，相較於 2024Q1 的最高點 52.38% 確實有所下降。\n\n很抱歉，文件庫中沒有聯發科的相關文件，因此無法提供毛利率下降的原因。目前文件庫只涵蓋台積電的資料。",
+      "stop_reason": "done",
+      "tools": [
+        "search_company",
+        "get_ratio",
+        "search_documents"
+      ],
+      "guard_triggered": false,
+      "leak_blocked": false,
+      "empty_retries": 0,
+      "usage": {
+        "calls": 5,
+        "prompt": 15010,
+        "cached": 7716,
+        "output": 230,
+        "thinking": 716
+      },
+      "seconds": 11.7,
+      "passed": true,
+      "infra_error": false,
+      "failures": [],
+      "unsourced": []
+    },
+    {
+      "id": "d_irrelevant",
+      "run": 1,
+      "question": "台積電員工餐廳好吃嗎？",
+      "answer": "我無法回答這個問題，我的知識庫中沒有這方面的資訊。",
+      "stop_reason": "done",
+      "tools": [],
+      "guard_triggered": false,
+      "leak_blocked": false,
+      "empty_retries": 0,
+      "usage": {
+        "calls": 1,
+        "prompt": 2138,
+        "cached": 1711,
+        "output": 15,
+        "thinking": 71
+      },
+      "seconds": 1.2,
+      "passed": true,
+      "infra_error": false,
+      "failures": [],
+      "unsourced": []
+    }
+  ],
+  "summary": {
+    "total_runs": 5,
+    "infra_errors": 0,
+    "pass_rate": 1.0,
+    "tool_call_rate_on_data_questions": 1.0,
+    "guard_triggered_runs": 0,
+    "ungrounded_stops": 0,
+    "leak_blocked_runs": 0,
+    "runs_with_empty_retry": 0,
+    "usage": {
+      "calls": 14,
+      "prompt": 45298,
+      "cached": 25249,
+      "output": 2108,
+      "thinking": 4303
+    },
+    "runs_with_unsourced_numbers": 0,
+    "per_question": {
+      "d_ai": {
+        "passed": 1,
+        "total": 1,
+        "avg_tools": 1,
+        "avg_seconds": 8.0
+      },
+      "d_cowos": {
+        "passed": 1,
+        "total": 1,
+        "avg_tools": 1,
+        "avg_seconds": 8.8
+      },
+      "d_why_rev": {
+        "passed": 1,
+        "total": 1,
+        "avg_tools": 3,
+        "avg_seconds": 16.2
+      },
+      "d_other_why": {
+        "passed": 1,
+        "total": 1,
+        "avg_tools": 3,
+        "avg_seconds": 11.7
+      },
+      "d_irrelevant": {
+        "passed": 1,
+        "total": 1,
+        "avg_tools": 0,
+        "avg_seconds": 1.2
+      }
+    }
+  }
+}

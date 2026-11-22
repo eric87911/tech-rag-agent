@@ -20,6 +20,15 @@ logger = logging.getLogger(__name__)
 ROOT = Path(__file__).resolve().parent.parent
 NICKNAMES = {"2330": "台積電"}
 
+# 每百萬 token 的美元價格（gemini-2.5-flash；2026-11-22 查自第三方彙整頁，官方頁請自行核對 ai.google.dev/gemini-api/docs/pricing）
+PRICE_INPUT, PRICE_CACHED, PRICE_OUTPUT = 0.30, 0.03, 2.50      # 輸出價格包含思考 token
+
+
+def estimate_cost(u: dict) -> float:
+    """prompt_token_count 含快取命中的部分，所以未快取輸入 = prompt - cached"""
+    fresh = max(u.get("prompt", 0) - u.get("cached", 0), 0)
+    return (fresh * PRICE_INPUT + u.get("cached", 0) * PRICE_CACHED + (u.get("output", 0) + u.get("thinking", 0)) * PRICE_OUTPUT) / 1e6
+
 
 # ---------- 1. 向 API 查標準答案 ----------
 def _get(path: str, **params) -> dict:
@@ -335,7 +344,7 @@ def run_eval(client, model, runs=3, only=None, sleep=0.0, questions=None) -> dic
             chk = check_run(q, res)
             records.append({"id": q["id"], "run": i, "question": q["question"], "answer": res.answer,
                             "stop_reason": res.stop_reason, "tools": [c["name"] for c in res.tool_calls],
-                            "guard_triggered": res.guard_triggered, "leak_blocked": res.leak_blocked, "empty_retries": res.empty_retries, "seconds": round(seconds, 1), **chk})
+                            "guard_triggered": res.guard_triggered, "leak_blocked": res.leak_blocked, "empty_retries": res.empty_retries, "usage": res.usage, "seconds": round(seconds, 1), **chk})
             print(f"  {'✅' if chk['passed'] else ('⚠️' if chk['infra_error'] else '❌')} {q['id']} #{i}"
                   + ("" if chk["passed"] else f"  {chk['failures']}"))
             time.sleep(sleep)
@@ -360,6 +369,7 @@ def summarize(records, questions) -> dict:
         "ungrounded_stops": sum(r["stop_reason"] == "ungrounded" for r in valid),
         "leak_blocked_runs": sum(r.get("leak_blocked", False) for r in valid),
         "runs_with_empty_retry": sum(r.get("empty_retries", 0) > 0 for r in valid),
+        "usage": {k: sum(r.get("usage", {}).get(k, 0) for r in records) for k in ("calls", "prompt", "cached", "output", "thinking")},
         "runs_with_unsourced_numbers": sum(bool(r["unsourced"]) for r in valid),
         "per_question": per_q,
     }
@@ -376,6 +386,10 @@ def print_summary(result: dict) -> None:
     print(f"需要查資料的題目中，有呼叫工具的比率：{pct(s['tool_call_rate_on_data_questions'])}")
     print(f"「沒查資料就報數字」保險出手次數：{s['guard_triggered_runs']}（其中最後仍被拒絕：{s['ungrounded_stops']}）")
     print(f"答案洩漏系統提示、被程式攔截的次數：{s['leak_blocked_runs']}")
+    u = s["usage"]
+    if u["calls"]:
+        print(f"Gemini 呼叫 {u['calls']} 次｜輸入 {u['prompt']:,} token（快取命中 {u['cached']:,}）｜輸出 {u['output']:,}＋思考 {u['thinking']:,} token"
+              f"｜估計費用 ${estimate_cost(u):.2f}（單次平均 ${estimate_cost(u) / max(s['total_runs'], 1):.4f}）")
     print(f"Gemini 回傳空白、經重試的次數：{s['runs_with_empty_retry']}（重試後仍失敗的會列在 ❌）")
     print(f"答案含「疑似未溯源數字」的次數：{s['runs_with_unsourced_numbers']}（需人工複查 JSON）")
 

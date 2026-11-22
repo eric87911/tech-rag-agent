@@ -1,0 +1,312 @@
+{
+  "model": "gemini-2.5-flash",
+  "runs": 2,
+  "records": [
+    {
+      "id": "d_ai",
+      "run": 1,
+      "question": "台積電怎麼看 AI 需求？",
+      "answer": "台積電對 AI 需求持樂觀態度。他們觀察到 AI 模型在消費端、企業端和主權 AI 領域的採用率持續提升，這帶動了對更多運算能力的需求，進而支持了對先進半導體晶片的強勁需求（來源：台積電 2025 年報 致股東報告書｜第 3 頁）。\n\n台積電的客戶和客戶的客戶（主要是雲端服務供應商）持續釋出非常強烈的訊號與正向展望。因此，台積電對多年期 AI 巨型趨勢的信心仍然很高，並相信半導體需求將持續是非常根本且關鍵的。在強勁的技術差異化與更廣泛的客戶基礎支持下，台積電對 2026 全年營收（以美元計）成長超過 30% 仍維持高度信心（來源：台積電 2026Q1 法說會逐字稿（第三方整理）｜C.C. Wei）。\n\n此外，台積電也提到從生成式 AI 與查詢模式，轉向代理式 AI（agentic AI）以及指令與行動模式，正使得 token 的消耗量再上升一個台階，這推動了對更多運算的需求，進而支撐先進矽晶的強勁需求（來源：台積電 2026Q1 法說會逐字稿（第三方整理）｜C.C. Wei）。",
+      "stop_reason": "done",
+      "tools": [
+        "search_company",
+        "search_documents"
+      ],
+      "guard_triggered": false,
+      "leak_blocked": false,
+      "empty_retries": 0,
+      "usage": {
+        "calls": 3,
+        "prompt": 9002,
+        "cached": 5312,
+        "output": 362,
+        "thinking": 0
+      },
+      "seconds": 4.3,
+      "passed": true,
+      "infra_error": false,
+      "failures": [],
+      "unsourced": []
+    },
+    {
+      "id": "d_ai",
+      "run": 2,
+      "question": "台積電怎麼看 AI 需求？",
+      "answer": "台積電對 AI 需求持樂觀態度。他們觀察到 AI 模型在消費端、企業端和主權 AI 領域的採用率持續提升，這帶動了對更多運算能力的需求，進而支持了對先進半導體晶片的強勁需求（來源：台積電 2025 年報 致股東報告書｜第 3 頁）。\n\n台積電的客戶和客戶的客戶（主要是雲端服務供應商）持續釋出非常強烈的訊號與正向展望。因此，台積電對多年期 AI 巨型趨勢的信心仍然很高，並相信半導體需求將持續是非常根本且關鍵的。在強勁的技術差異化與更廣泛的客戶基礎支持下，台積電對 2026 全年營收（以美元計）成長超過 30% 仍維持高度信心（來源：台積電 2026Q1 法說會逐字稿（第三方整理）｜C.C. Wei）。\n\n此外，台積電也提到從生成式 AI 與查詢模式，轉向代理式 AI（agentic AI）以及指令與行動模式，正使得 token 的消耗量再上升一個台階，這推動了對更多運算的需求，進而支撐先進矽晶的強勁需求（來源：台積電 2026Q1 法說會逐字稿（第三方整理）｜C.C. Wei）。",
+      "stop_reason": "done",
+      "tools": [
+        "search_company",
+        "search_documents"
+      ],
+      "guard_triggered": false,
+      "leak_blocked": false,
+      "empty_retries": 0,
+      "usage": {
+        "calls": 3,
+        "prompt": 9002,
+        "cached": 7185,
+        "output": 362,
+        "thinking": 0
+      },
+      "seconds": 4.7,
+      "passed": true,
+      "infra_error": false,
+      "failures": [],
+      "unsourced": []
+    },
+    {
+      "id": "d_cowos",
+      "run": 1,
+      "question": "台積電的先進封裝產能狀況如何？",
+      "answer": "台積電的先進封裝產能目前非常吃緊，公司正努力提升自有產能，同時也與 OSAT 合作夥伴合作，以滿足客戶對產品的需求（來源：台積電 2026Q1 法說會逐字稿（第三方整理）｜Q&A｜Laura Chen 提問，Jeff Su、C.C. Wei 回答）。\n\n台積電在先進封裝技術方面，整合前段晶圓製程與後段晶片封裝，提供先進封裝解決方案。開發重點已從矽中介層技術轉移到多個局部矽互連（LSI）的重構中介層。2025 年，品質暨可靠性組織已完成認證 CoWoS® 先進封裝解決方案在 5.5 倍光罩尺寸中介層的認證，並計劃於 2026 年導入量產，以滿足人工智慧與高效能運算的更高性能目標。在整合型扇出層疊封裝技術（InFO_PoP）方面，台積電持續領先業界進行 N3P 相關晶片量產，以支援行動應用的需求（來源：台積電 2025 年報 營運概況｜第 8 頁）。\n\n此外，台積電也持續開發 CoWoS®-R 和 CoWoS®-L 等先進封裝服務，以支援更大尺寸的高性能計算產品，並已邁入量產階段（來源：台積電 2025 年報 營運概況｜第 3 頁）。公司也持續開發先進封裝和 3D 晶片堆疊技術，包括 CoWoS®、整合型扇出（InFO）、TSMC-SoIC® 和 TSMC-COUPETM，以實現更低功耗的大規模互連，支持客戶需求（來源：台積電 2025 年報 致股東報告書｜第 2 頁）。",
+      "stop_reason": "done",
+      "tools": [
+        "search_documents"
+      ],
+      "guard_triggered": false,
+      "leak_blocked": false,
+      "empty_retries": 0,
+      "usage": {
+        "calls": 2,
+        "prompt": 6627,
+        "cached": 3589,
+        "output": 461,
+        "thinking": 0
+      },
+      "seconds": 3.8,
+      "passed": true,
+      "infra_error": false,
+      "failures": [],
+      "unsourced": []
+    },
+    {
+      "id": "d_cowos",
+      "run": 2,
+      "question": "台積電的先進封裝產能狀況如何？",
+      "answer": "台積電的先進封裝產能目前非常吃緊，公司正努力提升自有產能，同時也與 OSAT 合作夥伴合作，以滿足客戶需求（來源：台積電 2026Q1 法說會逐字稿（第三方整理）｜Q&A｜Laura Chen 提問，Jeff Su、C.C. Wei 回答）。\n\n台積電在先進封裝技術方面，整合前段晶圓製程與後段晶片封裝，提供先進封裝解決方案。開發重點從原本的矽中介層技術轉移到多個局部矽互連（LSI）的重構中介層。2025 年，品質暨可靠性組織完成認證 CoWoS® 先進封裝解決方案在 5.5 倍光罩尺寸中介層的認證，並計劃於 2026 年導入量產，以滿足人工智慧與高效能運算的更高性能目標。在整合型扇出層疊封裝技術（InFO_PoP）方面，台積電持續領先業界進行 N3P 相關晶片量產，以支援行動應用的需求（來源：台積電 2025 年報 營運概況｜第 8 頁）。\n\n台積電也持續開發 CoWoS®-R 和 CoWoS®-L 等先進封裝服務，以支援更大尺寸的高性能計算產品（來源：台積電 2025 年報 營運概況｜第 3 頁）。此外，公司也持續開發先進封裝和 3D 晶片堆疊技術，包括 CoWoS®、整合型扇出（InFO）、TSMC-SoIC® 和 TSMC-COUPE™，以實現更低功耗的大規模互連，支持客戶需求（來源：台積電 2025 年報 致股東報告書｜第 2 頁）。",
+      "stop_reason": "done",
+      "tools": [
+        "search_documents"
+      ],
+      "guard_triggered": false,
+      "leak_blocked": false,
+      "empty_retries": 0,
+      "usage": {
+        "calls": 2,
+        "prompt": 6627,
+        "cached": 5461,
+        "output": 450,
+        "thinking": 0
+      },
+      "seconds": 4.3,
+      "passed": true,
+      "infra_error": false,
+      "failures": [],
+      "unsourced": []
+    },
+    {
+      "id": "d_why_rev",
+      "run": 1,
+      "question": "台積電營收為什麼成長？",
+      "answer": "台積電 2025Q4 營收為新台幣 1.05 兆元。\n\n台積電營收成長主要受惠於先進製程技術的強勁需求，特別是人工智慧（AI）相關需求在 2025 年全年保持強勁，同時非 AI 相關的終端市場也已觸底並呈現溫和復甦。高階智慧型手機的表現也對台積電有利。\n\n台積電 2025 年以美元計的營收年增 35.9%，營收和每股盈餘雙雙創下歷史新高。3 奈米製程技術已進入量產的第三個完整年度，占台積公司 2025 年整體晶圓銷售金額的 24%（來源：台積電 2025 年報 致股東報告書｜第 2 頁）。\n\n台積電也提到，記憶體漲價確實會對價格敏感的終端市場造成一些影響，特別是在 PC 與智慧型手機市場，市場稍微偏軟一些。此外，中東局勢也帶來更多總體經濟不確定性，因此公司在業務規劃上採取審慎態度（來源：台積電 2026Q1 法說會逐字稿（第三方整理）｜C.C. Wei）。",
+      "stop_reason": "done",
+      "tools": [
+        "search_company",
+        "get_financials",
+        "search_documents"
+      ],
+      "guard_triggered": false,
+      "leak_blocked": false,
+      "empty_retries": 0,
+      "usage": {
+        "calls": 4,
+        "prompt": 14593,
+        "cached": 9108,
+        "output": 363,
+        "thinking": 0
+      },
+      "seconds": 6.4,
+      "passed": true,
+      "infra_error": false,
+      "failures": [],
+      "unsourced": []
+    },
+    {
+      "id": "d_why_rev",
+      "run": 2,
+      "question": "台積電營收為什麼成長？",
+      "answer": "台積電 2025Q4 營收為新台幣 1.05 兆元。\n\n台積電營收成長主要受惠於先進製程技術的強勁需求，特別是人工智慧（AI）相關需求在 2025 年全年保持強勁，同時非 AI 相關的終端市場也已觸底並呈現溫和復甦。高階智慧型手機的表現也對台積電有利。\n\n台積電 2025 年以美元計的營收年增 35.9%，營收和每股盈餘雙雙創下歷史新高。3 奈米製程技術已進入量產的第三個完整年度，占台積公司 2025 年整體晶圓銷售金額的 24%（來源：台積電 2025 年報 致股東報告書｜第 2 頁）。\n\n台積電在業務規劃上採取審慎態度，同時聚焦於業務基本面，以進一步強化競爭地位（來源：台積電 2026Q1 法說會逐字稿（第三方整理）｜C.C. Wei）。",
+      "stop_reason": "done",
+      "tools": [
+        "search_company",
+        "get_financials",
+        "search_documents"
+      ],
+      "guard_triggered": false,
+      "leak_blocked": false,
+      "empty_retries": 0,
+      "usage": {
+        "calls": 4,
+        "prompt": 14593,
+        "cached": 12868,
+        "output": 324,
+        "thinking": 0
+      },
+      "seconds": 5.4,
+      "passed": true,
+      "infra_error": false,
+      "failures": [],
+      "unsourced": []
+    },
+    {
+      "id": "d_other_why",
+      "run": 1,
+      "question": "聯發科毛利率為什麼下降？",
+      "answer": "聯發科的毛利率在 2025Q4 為 46.13%，相較於 2024Q1 的最高點 52.38% 有所下降。\n\n文件庫中沒有聯發科的資料，因此無法說明其毛利率下降的原因。",
+      "stop_reason": "done",
+      "tools": [
+        "search_company",
+        "get_ratio",
+        "search_documents"
+      ],
+      "guard_triggered": false,
+      "leak_blocked": false,
+      "empty_retries": 0,
+      "usage": {
+        "calls": 4,
+        "prompt": 11344,
+        "cached": 7985,
+        "output": 132,
+        "thinking": 0
+      },
+      "seconds": 5.4,
+      "passed": true,
+      "infra_error": false,
+      "failures": [],
+      "unsourced": []
+    },
+    {
+      "id": "d_other_why",
+      "run": 2,
+      "question": "聯發科毛利率為什麼下降？",
+      "answer": "聯發科的毛利率在 2025Q4 為 46.13%，相較於 2024Q1 的最高點 52.38% 有所下降。\n\n文件庫中沒有聯發科的資料，因此無法說明其毛利率下降的原因。",
+      "stop_reason": "done",
+      "tools": [
+        "search_company",
+        "get_ratio",
+        "search_documents"
+      ],
+      "guard_triggered": false,
+      "leak_blocked": false,
+      "empty_retries": 0,
+      "usage": {
+        "calls": 4,
+        "prompt": 11344,
+        "cached": 8894,
+        "output": 132,
+        "thinking": 0
+      },
+      "seconds": 6.8,
+      "passed": true,
+      "infra_error": false,
+      "failures": [],
+      "unsourced": []
+    },
+    {
+      "id": "d_irrelevant",
+      "run": 1,
+      "question": "台積電員工餐廳好吃嗎？",
+      "answer": "我沒有關於台積電員工餐廳好不好吃的資訊。",
+      "stop_reason": "done",
+      "tools": [],
+      "guard_triggered": false,
+      "leak_blocked": false,
+      "empty_retries": 0,
+      "usage": {
+        "calls": 1,
+        "prompt": 2138,
+        "cached": 1718,
+        "output": 13,
+        "thinking": 0
+      },
+      "seconds": 1.2,
+      "passed": true,
+      "infra_error": false,
+      "failures": [],
+      "unsourced": []
+    },
+    {
+      "id": "d_irrelevant",
+      "run": 2,
+      "question": "台積電員工餐廳好吃嗎？",
+      "answer": "我沒有關於台積電員工餐廳好不好吃的資訊。",
+      "stop_reason": "done",
+      "tools": [],
+      "guard_triggered": false,
+      "leak_blocked": false,
+      "empty_retries": 0,
+      "usage": {
+        "calls": 1,
+        "prompt": 2138,
+        "cached": 1718,
+        "output": 13,
+        "thinking": 0
+      },
+      "seconds": 1.0,
+      "passed": true,
+      "infra_error": false,
+      "failures": [],
+      "unsourced": []
+    }
+  ],
+  "summary": {
+    "total_runs": 10,
+    "infra_errors": 0,
+    "pass_rate": 1.0,
+    "tool_call_rate_on_data_questions": 1.0,
+    "guard_triggered_runs": 0,
+    "ungrounded_stops": 0,
+    "leak_blocked_runs": 0,
+    "runs_with_empty_retry": 0,
+    "usage": {
+      "calls": 28,
+      "prompt": 87408,
+      "cached": 63838,
+      "output": 2612,
+      "thinking": 0
+    },
+    "runs_with_unsourced_numbers": 0,
+    "per_question": {
+      "d_ai": {
+        "passed": 2,
+        "total": 2,
+        "avg_tools": 2,
+        "avg_seconds": 4.5
+      },
+      "d_cowos": {
+        "passed": 2,
+        "total": 2,
+        "avg_tools": 1,
+        "avg_seconds": 4.0
+      },
+      "d_why_rev": {
+        "passed": 2,
+        "total": 2,
+        "avg_tools": 3,
+        "avg_seconds": 5.9
+      },
+      "d_other_why": {
+        "passed": 2,
+        "total": 2,
+        "avg_tools": 3,
+        "avg_seconds": 6.1
+      },
+      "d_irrelevant": {
+        "passed": 2,
+        "total": 2,
+        "avg_tools": 0,
+        "avg_seconds": 1.1
+      }
+    }
+  }
+}

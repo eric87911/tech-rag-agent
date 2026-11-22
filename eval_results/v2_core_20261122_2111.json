@@ -1,0 +1,498 @@
+{
+  "model": "gemini-2.5-flash",
+  "runs": 1,
+  "records": [
+    {
+      "id": "single_money",
+      "run": 1,
+      "question": "台積電 2025Q4 的營收是多少？",
+      "answer": "台積電 2025Q4 的營收是 1.05 兆元 (新台幣 1,046,090,421 千元)。",
+      "stop_reason": "done",
+      "tools": [
+        "search_company",
+        "get_financials"
+      ],
+      "guard_triggered": false,
+      "leak_blocked": false,
+      "empty_retries": 0,
+      "usage": {
+        "calls": 3,
+        "prompt": 6775,
+        "cached": 3342,
+        "output": 108,
+        "thinking": 182
+      },
+      "seconds": 5.0,
+      "passed": true,
+      "infra_error": false,
+      "failures": [],
+      "unsourced": []
+    },
+    {
+      "id": "alias",
+      "run": 1,
+      "question": "台哥大 2025Q3 的營收是多少？",
+      "answer": "台灣大哥大（3045）2025Q3 的營收是 463.4 億元（新台幣 46,339,806 千元）。",
+      "stop_reason": "done",
+      "tools": [
+        "search_company",
+        "get_financials"
+      ],
+      "guard_triggered": false,
+      "leak_blocked": false,
+      "empty_retries": 0,
+      "usage": {
+        "calls": 3,
+        "prompt": 6757,
+        "cached": 3181,
+        "output": 111,
+        "thinking": 357
+      },
+      "seconds": 6.0,
+      "passed": true,
+      "infra_error": false,
+      "failures": [],
+      "unsourced": []
+    },
+    {
+      "id": "eps",
+      "run": 1,
+      "question": "聯發科 2025Q4 的 EPS 是多少？",
+      "answer": "聯發科 2025Q4 的 EPS 是 14.39 元。",
+      "stop_reason": "done",
+      "tools": [
+        "search_company",
+        "get_financials"
+      ],
+      "guard_triggered": false,
+      "leak_blocked": false,
+      "empty_retries": 0,
+      "usage": {
+        "calls": 3,
+        "prompt": 6768,
+        "cached": 4884,
+        "output": 86,
+        "thinking": 295
+      },
+      "seconds": 4.2,
+      "passed": true,
+      "infra_error": false,
+      "failures": [],
+      "unsourced": []
+    },
+    {
+      "id": "operating_income",
+      "run": 1,
+      "question": "鴻海 2025Q4 的營業利益是多少？",
+      "answer": "鴻海 2025Q4 的營業利益是 855.9 億元（85,590,585 新台幣千元）。",
+      "stop_reason": "done",
+      "tools": [
+        "search_company",
+        "get_financials"
+      ],
+      "guard_triggered": false,
+      "leak_blocked": false,
+      "empty_retries": 0,
+      "usage": {
+        "calls": 3,
+        "prompt": 6762,
+        "cached": 4940,
+        "output": 105,
+        "thinking": 308
+      },
+      "seconds": 4.8,
+      "passed": true,
+      "infra_error": false,
+      "failures": [],
+      "unsourced": []
+    },
+    {
+      "id": "trend",
+      "run": 1,
+      "question": "台積電 2025 年每一季的毛利率",
+      "answer": "台積電 2025 年各季的毛利率如下：\n* 2025Q1：58.79%\n* 2025Q2：58.62%\n* 2025Q3：59.45%\n* 2025Q4：62.33%",
+      "stop_reason": "done",
+      "tools": [
+        "search_company",
+        "get_ratio"
+      ],
+      "guard_triggered": false,
+      "leak_blocked": false,
+      "empty_retries": 0,
+      "usage": {
+        "calls": 3,
+        "prompt": 7052,
+        "cached": 3206,
+        "output": 146,
+        "thinking": 351
+      },
+      "seconds": 5.4,
+      "passed": true,
+      "infra_error": false,
+      "failures": [],
+      "unsourced": []
+    },
+    {
+      "id": "highest",
+      "run": 1,
+      "question": "台積電毛利率最高是哪一季？",
+      "answer": "台積電的毛利率最高是 2025Q4，達到 62.33%。",
+      "stop_reason": "done",
+      "tools": [
+        "search_company",
+        "get_ratio"
+      ],
+      "guard_triggered": false,
+      "leak_blocked": false,
+      "empty_retries": 0,
+      "usage": {
+        "calls": 3,
+        "prompt": 7832,
+        "cached": 3356,
+        "output": 66,
+        "thinking": 287
+      },
+      "seconds": 4.4,
+      "passed": true,
+      "infra_error": false,
+      "failures": [],
+      "unsourced": []
+    },
+    {
+      "id": "negative_margin",
+      "run": 1,
+      "question": "台灣塑膠 2025Q4 的營業利益率是多少？",
+      "answer": "台灣塑膠 2025Q4 的營業利益率是 -5.76%。",
+      "stop_reason": "done",
+      "tools": [
+        "search_company",
+        "get_ratio"
+      ],
+      "guard_triggered": false,
+      "leak_blocked": false,
+      "empty_retries": 0,
+      "usage": {
+        "calls": 3,
+        "prompt": 6880,
+        "cached": 4955,
+        "output": 87,
+        "thinking": 231
+      },
+      "seconds": 4.3,
+      "passed": true,
+      "infra_error": false,
+      "failures": [],
+      "unsourced": []
+    },
+    {
+      "id": "ranking",
+      "run": 1,
+      "question": "2025Q4 營收前三名是哪些公司？",
+      "answer": "2025Q4 營收前三名的公司是：\n\n1.  鴻海精密工業股份有限公司 (2317)：2.61 兆元 (2,606,372,027 新台幣千元)\n2.  台灣積體電路製造股份有限公司 (2330)：1.05 兆元 (1,046,090,421 新台幣千元)\n3.  緯創資通股份有限公司 (3231)：7,209.4 億元 (720,940,833 新台幣千元)\n\n此次排名涵蓋了有資料的 42 家公司（共 52 家），以下公司沒有納入排名：大成長城企業股份有限公司 (1210)、金像電子股份有限公司 (2368)、研華股份有限公司 (2395)、南亞科技股份有限公司 (2408)、長榮海運股份有限公司 (2603)、陽明海運股份有限公司 (2609)、萬海航運股份有限公司 (2615)、長榮航空股份有限公司 (2618)、美食達人股份有限公司 (2723)、台灣大哥大股份有限公司 (3045)。",
+      "stop_reason": "done",
+      "tools": [
+        "get_ranking"
+      ],
+      "guard_triggered": false,
+      "leak_blocked": false,
+      "empty_retries": 0,
+      "usage": {
+        "calls": 2,
+        "prompt": 4804,
+        "cached": 3435,
+        "output": 312,
+        "thinking": 65
+      },
+      "seconds": 3.1,
+      "passed": true,
+      "infra_error": false,
+      "failures": [],
+      "unsourced": []
+    },
+    {
+      "id": "compare",
+      "run": 1,
+      "question": "台積電和聯電 2025Q4 的營收，哪一家比較高？",
+      "answer": "在 2025Q4，台積電（2330）的營收為 1.05 兆元（1,046,090,421 新台幣千元），聯電（2303）的營收為 618.1 億元（61,809,545 新台幣千元）。\n\n因此，台積電的營收在 2025Q4 比較高。",
+      "stop_reason": "done",
+      "tools": [
+        "search_company",
+        "search_company",
+        "get_financials",
+        "get_financials"
+      ],
+      "guard_triggered": false,
+      "leak_blocked": false,
+      "empty_retries": 0,
+      "usage": {
+        "calls": 5,
+        "prompt": 11843,
+        "cached": 7367,
+        "output": 238,
+        "thinking": 156
+      },
+      "seconds": 6.8,
+      "passed": true,
+      "infra_error": false,
+      "failures": [],
+      "unsourced": []
+    },
+    {
+      "id": "ambiguous",
+      "run": 1,
+      "question": "長榮的營收是多少？",
+      "answer": "您是指長榮海運 (2603) 還是長榮航空 (2618) 呢？",
+      "stop_reason": "done",
+      "tools": [
+        "search_company"
+      ],
+      "guard_triggered": false,
+      "leak_blocked": false,
+      "empty_retries": 0,
+      "usage": {
+        "calls": 2,
+        "prompt": 4397,
+        "cached": 3374,
+        "output": 42,
+        "thinking": 163
+      },
+      "seconds": 2.7,
+      "passed": true,
+      "infra_error": false,
+      "failures": [],
+      "unsourced": []
+    },
+    {
+      "id": "missing_data",
+      "run": 1,
+      "question": "長榮海運 2025Q4 的毛利率是多少？",
+      "answer": "長榮海運 2025Q4 的毛利率目前查無資料。",
+      "stop_reason": "done",
+      "tools": [
+        "search_company",
+        "get_ratio"
+      ],
+      "guard_triggered": false,
+      "leak_blocked": false,
+      "empty_retries": 0,
+      "usage": {
+        "calls": 3,
+        "prompt": 6693,
+        "cached": 4848,
+        "output": 86,
+        "thinking": 253
+      },
+      "seconds": 4.0,
+      "passed": true,
+      "infra_error": false,
+      "failures": [],
+      "unsourced": []
+    },
+    {
+      "id": "out_of_range",
+      "run": 1,
+      "question": "台積電 2026Q2 的營收是多少？",
+      "answer": "我目前沒有台積電 2026Q2 的營收資料，我能提供的資料範圍是 2021Q1 到 2025Q4。",
+      "stop_reason": "done",
+      "tools": [],
+      "guard_triggered": false,
+      "leak_blocked": false,
+      "empty_retries": 0,
+      "usage": {
+        "calls": 1,
+        "prompt": 2145,
+        "cached": 1712,
+        "output": 40,
+        "thinking": 419
+      },
+      "seconds": 4.1,
+      "passed": true,
+      "infra_error": false,
+      "failures": [],
+      "unsourced": []
+    },
+    {
+      "id": "why_question",
+      "run": 1,
+      "question": "台積電毛利率為什麼一直上升？",
+      "answer": "台積電的毛利率在 2021Q1 為 52.38%，到 2025Q4 達到 62.33%，整體上升了 9.95 個百分點，其中 2025Q4 的 62.33% 是這段期間的最高點。不過，毛利率並非一直上升，期間曾有波動。例如，2022Q4 達到 62.22% 後，在 2023Q1 和 Q2 有所下降，之後又回升。\n\n根據台積電 2026Q1 法說會逐字稿的說明，2026 年第一季毛利率季增至 66.2%，主要原因為成本改善努力、整體產能利用率提升，以及較有利的匯率。此外，實際毛利率高於預期，也歸因於整體產能利用率高於預期，以及成本改善成效優於預期。公司預期 2026 年第二季毛利率將再提升至 66.5%，主要由更高的整體利用率與持續的成本改善（包含生產力提升）所帶動，但部分會被海外晶圓廠稀釋效應所抵銷（來源：台積電 2026Q1 法說會逐字稿（第三方整理）｜Wendell Huang）。\n\n台積電在 2025 年報中提到，2025 年毛利率為 59.9%，前一年為 56.1%（來源：台積電 2025 年報 致股東報告書｜第 3 頁）。\n\n此外，台積電在 2026Q1 法說會中也提到，已上修 2024 到 2029 年的長期毛利率目標，預期在景氣循環中將維持 56% 以上（來源：台積電 2026Q1 法說會逐字稿（第三方整理）｜Q&A｜Jim Fontanelli 提問，Jeff Su、Wendell Huang、C.C. Wei 回答）。",
+      "stop_reason": "done",
+      "tools": [
+        "search_company",
+        "get_ratio",
+        "search_documents"
+      ],
+      "guard_triggered": false,
+      "leak_blocked": false,
+      "empty_retries": 2,
+      "usage": {
+        "calls": 7,
+        "prompt": 21554,
+        "cached": 13992,
+        "output": 702,
+        "thinking": 1477
+      },
+      "seconds": 18.0,
+      "passed": true,
+      "infra_error": false,
+      "failures": [],
+      "unsourced": []
+    },
+    {
+      "id": "advice",
+      "run": 1,
+      "question": "台積電現在值不值得買？",
+      "answer": "我很抱歉，我無法提供投資建議或預測股價。",
+      "stop_reason": "done",
+      "tools": [],
+      "guard_triggered": false,
+      "leak_blocked": false,
+      "empty_retries": 0,
+      "usage": {
+        "calls": 1,
+        "prompt": 2139,
+        "cached": 1711,
+        "output": 15,
+        "thinking": 0
+      },
+      "seconds": 0.9,
+      "passed": true,
+      "infra_error": false,
+      "failures": [],
+      "unsourced": []
+    },
+    {
+      "id": "out_of_scope",
+      "run": 1,
+      "question": "今天台北天氣如何？",
+      "answer": "我是一個台股財報問答助理，無法回答天氣問題。",
+      "stop_reason": "done",
+      "tools": [],
+      "guard_triggered": false,
+      "leak_blocked": false,
+      "empty_retries": 0,
+      "usage": {
+        "calls": 1,
+        "prompt": 2135,
+        "cached": 0,
+        "output": 15,
+        "thinking": 0
+      },
+      "seconds": 0.8,
+      "passed": true,
+      "infra_error": false,
+      "failures": [],
+      "unsourced": []
+    }
+  ],
+  "summary": {
+    "total_runs": 15,
+    "infra_errors": 0,
+    "pass_rate": 1.0,
+    "tool_call_rate_on_data_questions": 1.0,
+    "guard_triggered_runs": 0,
+    "ungrounded_stops": 0,
+    "leak_blocked_runs": 0,
+    "runs_with_empty_retry": 1,
+    "usage": {
+      "calls": 43,
+      "prompt": 104536,
+      "cached": 64303,
+      "output": 2159,
+      "thinking": 4544
+    },
+    "runs_with_unsourced_numbers": 0,
+    "per_question": {
+      "single_money": {
+        "passed": 1,
+        "total": 1,
+        "avg_tools": 2,
+        "avg_seconds": 5.0
+      },
+      "alias": {
+        "passed": 1,
+        "total": 1,
+        "avg_tools": 2,
+        "avg_seconds": 6.0
+      },
+      "eps": {
+        "passed": 1,
+        "total": 1,
+        "avg_tools": 2,
+        "avg_seconds": 4.2
+      },
+      "operating_income": {
+        "passed": 1,
+        "total": 1,
+        "avg_tools": 2,
+        "avg_seconds": 4.8
+      },
+      "trend": {
+        "passed": 1,
+        "total": 1,
+        "avg_tools": 2,
+        "avg_seconds": 5.4
+      },
+      "highest": {
+        "passed": 1,
+        "total": 1,
+        "avg_tools": 2,
+        "avg_seconds": 4.4
+      },
+      "negative_margin": {
+        "passed": 1,
+        "total": 1,
+        "avg_tools": 2,
+        "avg_seconds": 4.3
+      },
+      "ranking": {
+        "passed": 1,
+        "total": 1,
+        "avg_tools": 1,
+        "avg_seconds": 3.1
+      },
+      "compare": {
+        "passed": 1,
+        "total": 1,
+        "avg_tools": 4,
+        "avg_seconds": 6.8
+      },
+      "ambiguous": {
+        "passed": 1,
+        "total": 1,
+        "avg_tools": 1,
+        "avg_seconds": 2.7
+      },
+      "missing_data": {
+        "passed": 1,
+        "total": 1,
+        "avg_tools": 2,
+        "avg_seconds": 4.0
+      },
+      "out_of_range": {
+        "passed": 1,
+        "total": 1,
+        "avg_tools": 0,
+        "avg_seconds": 4.1
+      },
+      "why_question": {
+        "passed": 1,
+        "total": 1,
+        "avg_tools": 3,
+        "avg_seconds": 18.0
+      },
+      "advice": {
+        "passed": 1,
+        "total": 1,
+        "avg_tools": 0,
+        "avg_seconds": 0.9
+      },
+      "out_of_scope": {
+        "passed": 1,
+        "total": 1,
+        "avg_tools": 0,
+        "avg_seconds": 0.8
+      }
+    }
+  }
+}

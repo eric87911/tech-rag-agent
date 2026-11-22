@@ -1,0 +1,272 @@
+{
+  "model": "gemini-2.5-flash",
+  "runs": 3,
+  "records": [
+    {
+      "id": "trend",
+      "run": 1,
+      "question": "台積電 2025 年每一季的毛利率",
+      "answer": "台積電 2025 年各季的毛利率如下：\n* 2025Q1：58.79%\n* 2025Q2：58.62%\n* 2025Q3：59.45%\n* 2025Q4：62.33%",
+      "stop_reason": "done",
+      "tools": [
+        "search_company",
+        "get_ratio"
+      ],
+      "guard_triggered": false,
+      "leak_blocked": false,
+      "empty_retries": 0,
+      "usage": {
+        "calls": 3,
+        "prompt": 7052,
+        "cached": 3225,
+        "output": 146,
+        "thinking": 404
+      },
+      "seconds": 6.4,
+      "passed": true,
+      "infra_error": false,
+      "failures": [],
+      "unsourced": []
+    },
+    {
+      "id": "trend",
+      "run": 2,
+      "question": "台積電 2025 年每一季的毛利率",
+      "answer": "台積電 2025 年各季的毛利率如下：\n* 2025Q1：58.79%\n* 2025Q2：58.62%\n* 2025Q3：59.45%\n* 2025Q4：62.33%",
+      "stop_reason": "done",
+      "tools": [
+        "search_company",
+        "get_ratio"
+      ],
+      "guard_triggered": false,
+      "leak_blocked": false,
+      "empty_retries": 0,
+      "usage": {
+        "calls": 3,
+        "prompt": 7052,
+        "cached": 5743,
+        "output": 146,
+        "thinking": 404
+      },
+      "seconds": 6.6,
+      "passed": true,
+      "infra_error": false,
+      "failures": [],
+      "unsourced": []
+    },
+    {
+      "id": "trend",
+      "run": 3,
+      "question": "台積電 2025 年每一季的毛利率",
+      "answer": "台積電 2025 年各季的毛利率如下：\n*   2025Q1：58.79%\n*   2025Q2：58.62%\n*   2025Q3：59.45%\n*   2025Q4：62.33%",
+      "stop_reason": "done",
+      "tools": [
+        "search_company",
+        "get_ratio"
+      ],
+      "guard_triggered": false,
+      "leak_blocked": false,
+      "empty_retries": 0,
+      "usage": {
+        "calls": 3,
+        "prompt": 7052,
+        "cached": 5743,
+        "output": 146,
+        "thinking": 346
+      },
+      "seconds": 5.7,
+      "passed": true,
+      "infra_error": false,
+      "failures": [],
+      "unsourced": []
+    },
+    {
+      "id": "out_of_range",
+      "run": 1,
+      "question": "台積電 2026Q2 的營收是多少？",
+      "answer": "我目前沒有台積電 2026Q2 的營收資料，我能提供的資料範圍是 2021Q1 到 2025Q4。",
+      "stop_reason": "done",
+      "tools": [],
+      "guard_triggered": false,
+      "leak_blocked": false,
+      "empty_retries": 0,
+      "usage": {
+        "calls": 1,
+        "prompt": 2145,
+        "cached": 0,
+        "output": 40,
+        "thinking": 419
+      },
+      "seconds": 3.8,
+      "passed": true,
+      "infra_error": false,
+      "failures": [],
+      "unsourced": []
+    },
+    {
+      "id": "out_of_range",
+      "run": 2,
+      "question": "台積電 2026Q2 的營收是多少？",
+      "answer": "我沒有 2026Q2 的財報資料，目前只有 2021Q1 到 2025Q4 的數據。",
+      "stop_reason": "done",
+      "tools": [],
+      "guard_triggered": false,
+      "leak_blocked": false,
+      "empty_retries": 2,
+      "usage": {
+        "calls": 3,
+        "prompt": 6435,
+        "cached": 5136,
+        "output": 34,
+        "thinking": 639
+      },
+      "seconds": 6.5,
+      "passed": true,
+      "infra_error": false,
+      "failures": [],
+      "unsourced": []
+    },
+    {
+      "id": "out_of_range",
+      "run": 3,
+      "question": "台積電 2026Q2 的營收是多少？",
+      "answer": "我目前沒有台積電 2026Q2 的營收資料，目前資料庫的資料只涵蓋到 2025Q4。",
+      "stop_reason": "done",
+      "tools": [],
+      "guard_triggered": false,
+      "leak_blocked": false,
+      "empty_retries": 1,
+      "usage": {
+        "calls": 2,
+        "prompt": 4290,
+        "cached": 3424,
+        "output": 35,
+        "thinking": 679
+      },
+      "seconds": 4.7,
+      "passed": true,
+      "infra_error": false,
+      "failures": [],
+      "unsourced": []
+    },
+    {
+      "id": "why_question",
+      "run": 1,
+      "question": "台積電毛利率為什麼一直上升？",
+      "answer": "台積電的毛利率從 2021Q1 的 52.38% 上升到 2025Q4 的 62.33%，整體上升了 9.95 個百分點，其中 2025Q4 的 62.33% 是這段期間的最高點。不過，毛利率並非一直上升，期間也有波動，例如在 2022Q4 達到 62.22% 後，於 2023Q1 下滑至 56.33%。\n\n根據台積電 2026 年第一季法說會的說明，毛利率的提升主要歸因於：\n*   成本改善的努力（來源：台積電 2026Q1 法說會逐字稿（第三方整理）｜Wendell Huang）\n*   整體產能利用率的提升（來源：台積電 2026Q1 法說會逐字稿（第三方整理）｜Wendell Huang）\n*   較有利的匯率（來源：台積電 2026Q1 法說會逐字稿（第三方整理）｜Wendell Huang）\n*   持續的成本改善，包括生產力提升（來源：台積電 2026Q1 法說會逐字稿（第三方整理）｜Wendell Huang）\n\n此外，台積電也上修了 2024 到 2029 年的長期毛利率目標，表示在景氣循環中毛利率將維持在 56% 以上（來源：台積電 2026Q1 法說會逐字稿（第三方整理）｜Q&A｜Jim Fontanelli 提問，Jeff Su、Wendell Huang、C.C. Wei 回答）。",
+      "stop_reason": "done",
+      "tools": [
+        "search_company",
+        "get_ratio",
+        "search_documents"
+      ],
+      "guard_triggered": false,
+      "leak_blocked": false,
+      "empty_retries": 1,
+      "usage": {
+        "calls": 5,
+        "prompt": 15697,
+        "cached": 6736,
+        "output": 610,
+        "thinking": 1505
+      },
+      "seconds": 15.8,
+      "passed": true,
+      "infra_error": false,
+      "failures": [],
+      "unsourced": []
+    },
+    {
+      "id": "why_question",
+      "run": 2,
+      "question": "台積電毛利率為什麼一直上升？",
+      "answer": "台積電的毛利率在 2021Q1 為 52.38%，在 2025Q4 達到 62.33%。從數據來看，毛利率並非一直上升，而是有波動。例如，2022Q4 達到 62.22% 後，在 2023Q1 下降至 56.33%。\n\n根據台積電 2026Q1 法說會逐字稿的說明，2026 年第一季毛利率較前一季增加 390 個基點至 66.2%，主要原因為成本改善努力、整體產能利用率提升，以及較有利的匯率。此外，2026 年第二季毛利率預計將再提升 30 個基點至 66.5%，主要受惠於更高的整體利用率與持續的成本改善（包含生產力提升），但部分會被海外晶圓廠稀釋效應所抵銷（來源：台積電 2026Q1 法說會逐字稿（第三方整理）｜Wendell Huang）。",
+      "stop_reason": "done",
+      "tools": [
+        "search_company",
+        "get_ratio",
+        "search_documents"
+      ],
+      "guard_triggered": false,
+      "leak_blocked": false,
+      "empty_retries": 1,
+      "usage": {
+        "calls": 6,
+        "prompt": 19318,
+        "cached": 11336,
+        "output": 426,
+        "thinking": 1232
+      },
+      "seconds": 15.2,
+      "passed": true,
+      "infra_error": false,
+      "failures": [],
+      "unsourced": []
+    },
+    {
+      "id": "why_question",
+      "run": 3,
+      "question": "台積電毛利率為什麼一直上升？",
+      "answer": "台積電的毛利率並非一直上升，而是呈現波動中的整體成長。例如，2021Q1 為 52.38%，2022Q4 達到 62.22%，2023Q1 下滑至 56.33%，而最新一季 2025Q4 則達到 62.33%。\n\n根據文件庫資料，台積電毛利率變化的原因包括：\n*   **成本改善努力**：公司持續進行成本改善，包含生產力提升（來源：台積電 2026Q1 法說會逐字稿（第三方整理）｜Wendell Huang）。\n*   **整體產能利用率提升**：較高的整體產能利用率有助於毛利率的提升（來源：台積電 2026Q1 法說會逐字稿（第三方整理）｜Wendell Huang）。\n*   **有利的匯率**：匯率變動也可能對毛利率產生影響（來源：台積電 2026Q1 法說會逐字稿（第三方整理）｜Wendell Huang）。\n\n台積電也上修了 2024 到 2029 年的長期毛利率目標，預期在景氣循環中將維持 56% 以上（來源：台積電 2026Q1 法說會逐字稿（第三方整理）｜Q&A｜Jim Fontanelli 提問，Jeff Su、Wendell Huang、C.C. Wei 回答）。",
+      "stop_reason": "done",
+      "tools": [
+        "search_company",
+        "get_ratio",
+        "search_documents"
+      ],
+      "guard_triggered": false,
+      "leak_blocked": false,
+      "empty_retries": 1,
+      "usage": {
+        "calls": 6,
+        "prompt": 19423,
+        "cached": 10396,
+        "output": 570,
+        "thinking": 1013
+      },
+      "seconds": 16.0,
+      "passed": true,
+      "infra_error": false,
+      "failures": [],
+      "unsourced": []
+    }
+  ],
+  "summary": {
+    "total_runs": 9,
+    "infra_errors": 0,
+    "pass_rate": 1.0,
+    "tool_call_rate_on_data_questions": 1.0,
+    "guard_triggered_runs": 0,
+    "ungrounded_stops": 0,
+    "leak_blocked_runs": 0,
+    "runs_with_empty_retry": 5,
+    "usage": {
+      "calls": 32,
+      "prompt": 88464,
+      "cached": 51739,
+      "output": 2153,
+      "thinking": 6641
+    },
+    "runs_with_unsourced_numbers": 0,
+    "per_question": {
+      "trend": {
+        "passed": 3,
+        "total": 3,
+        "avg_tools": 2,
+        "avg_seconds": 6.2
+      },
+      "out_of_range": {
+        "passed": 3,
+        "total": 3,
+        "avg_tools": 0,
+        "avg_seconds": 5.0
+      },
+      "why_question": {
+        "passed": 3,
+        "total": 3,
+        "avg_tools": 3,
+        "avg_seconds": 15.7
+      }
+    }
+  }
+}
