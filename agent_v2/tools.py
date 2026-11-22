@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 
 API_BASE_URL = os.getenv("API_BASE_URL", "http://127.0.0.1:8000")
 HTTP_TIMEOUT = 10  # 秒
+TOOL_TIMEOUTS = {"search_documents": 30}   # 文件檢索要先做向量嵌入（遇 429 會重試等待），給長一點
 
 ITEMS = [
     "accounts_payable", "accounts_receivable", "cash_equivalents", "cogs", "current_assets",
@@ -88,6 +89,21 @@ TOOL_DECLARATIONS.append(
         }, required=["code", "metric"]),
     )
 )
+TOOL_DECLARATIONS.append(
+    types.FunctionDeclaration(
+        name="search_documents",
+        description=("在文件中搜尋相關段落，用來回答「為什麼、怎麼看、展望、策略、管理層怎麼說」這類需要文字依據的問題。"
+                     "目前文件庫只有台積電的年報與法說會逐字稿，回傳的 coverage 會列出涵蓋哪些文件。"
+                     "不要用它查財報數字（數字用其他工具）。"
+                     "每個段落都標明所屬公司與來源；段落只能用來支持關於「該段落所屬公司」的陳述，"
+                     "不能拿來回答其他公司的問題。問的是特定公司時，一定要填 company；文件庫沒有該公司時 passages 會是空的，note 會說明。"
+                     "passages 是空的代表文件中沒有相關內容。"),
+        parameters=S(type="OBJECT", properties={
+            "q": _str("要找的主題或概念，用一句話描述，例如：AI 需求展望、先進封裝產能、美國擴廠計畫"),
+            "company": _str("所問的公司名稱，例如 台積電、聯發科。問特定公司時必填；問整體產業、不針對特定公司時可省略"),
+        }, required=["q"]),
+    )
+)
 GEMINI_TOOLS = [types.Tool(function_declarations=TOOL_DECLARATIONS)]
 
 # ---------- 2. 工具名稱 → (HTTP 路徑, 允許的參數)，白名單 ----------
@@ -96,6 +112,7 @@ _ROUTES = {
     "get_financials": ("/financials", {"code", "item", "period_from", "period_to"}),
     "get_ranking": ("/rankings", {"item", "period", "top_n", "order", "industry"}),
     "get_ratio": ("/ratios", {"code", "metric", "period_from", "period_to"}),
+    "search_documents": ("/documents/search", {"q", "company"}),
 }
 
 
@@ -122,7 +139,7 @@ def execute_tool(name: str, args: dict) -> dict:
     params = _clean_args(args, allowed)
     start = time.perf_counter()
     try:
-        resp = httpx.get(f"{API_BASE_URL}{path}", params=params, timeout=HTTP_TIMEOUT)
+        resp = httpx.get(f"{API_BASE_URL}{path}", params=params, timeout=TOOL_TIMEOUTS.get(name, HTTP_TIMEOUT))
     except httpx.HTTPError as e:
         logger.error(f"工具 {name} 無法連線到 API：{type(e).__name__}: {e}")
         return {"error": "api_unavailable", "message": "資料服務暫時無法連線"}
@@ -143,10 +160,14 @@ def check_tools_in_sync() -> None:
     try:
         resp = httpx.get(f"{API_BASE_URL}/items", timeout=HTTP_TIMEOUT)
         resp.raise_for_status()
-        schemas = httpx.get(f"{API_BASE_URL}/openapi.json", timeout=HTTP_TIMEOUT).json()["components"]["schemas"]
+        spec = httpx.get(f"{API_BASE_URL}/openapi.json", timeout=HTTP_TIMEOUT).json()
+        schemas = spec["components"]["schemas"]
     except httpx.HTTPError as e:
         raise RuntimeError(f"連不上 API（{API_BASE_URL}）：{type(e).__name__}。"
                            "請先在另一個終端機執行：uvicorn api.main:app") from e
+    missing = sorted(path for path, _ in _ROUTES.values() if path not in spec["paths"])
+    if missing:
+        raise RuntimeError(f"API 沒有這些路徑：{missing}。API 可能還在跑舊版，請重啟 uvicorn（記得加 --reload）")
     items = {x["item"] for x in resp.json()}
     if items != set(ITEMS):
         raise RuntimeError(f"工具宣告與 API 的科目清單不一致：差異 {items ^ set(ITEMS)}")

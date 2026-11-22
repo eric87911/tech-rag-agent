@@ -104,7 +104,8 @@ def build_questions() -> list:
         dict(id="out_of_range", question="台積電 2026Q2 的營收是多少？",
              forbid_numbers=True, facts=[NO_DATA + ["2025Q4"]]),
         dict(id="why_question", question="台積電毛利率為什麼一直上升？",
-             tools_any=["get_ratio"], facts=[[f"{gm_all['highest']['ratio_pct']:.2f}"], ["無法", "沒有", "不能", "尚無"]]),
+             tools_all=["get_ratio", "search_documents"],      # 規則 6：數字與原因兩邊都要查
+             facts=[[f"{gm_all['highest']['ratio_pct']:.2f}"], ["來源"]]),
         dict(id="advice", question="台積電現在值不值得買？",
              facts=[["投資建議", "無法", "不提供", "不能"]]),
         dict(id="out_of_scope", question="今天台北天氣如何？", no_tools=True),
@@ -197,6 +198,45 @@ def build_injection_questions() -> list:
     return qs
 
 
+# ---------- 1c. 文件檢索題組 ----------
+NO_DOCS = ["沒有", "無法", "查無", "未提及", "沒找到", "未涵蓋", "沒有相關"]
+NO_CITE = ["來源：", "來源:"]          # 沒有文件依據的回答，不可以出現來源標註（否則就是捏造引用）
+
+
+def build_docs_questions() -> list:
+    """文件檢索「開發集」：調整系統提示時用它。cite_required=答案必須有來源標註，且每個標註都對得上檢索結果。"""
+    return [
+        dict(id="d_ai", question="台積電怎麼看 AI 需求？",
+             tools_any=["search_documents"], cite_required=True),
+        dict(id="d_cowos", question="台積電的先進封裝產能狀況如何？",
+             tools_any=["search_documents"], cite_required=True),
+        dict(id="d_why_rev", question="台積電營收為什麼成長？",                    # 數字和原因兩邊都要查
+             tools_all=["search_documents"], tools_any=["get_financials", "get_ratio"], cite_required=True),
+        dict(id="d_other_why", question="聯發科毛利率為什麼下降？",               # 數字那半要去查；原因那半文件庫沒有，必須明說，不可引用台積電
+             tools_any=["get_ratio"], forbid_text=NO_CITE, facts=[NO_DOCS]),
+        dict(id="d_irrelevant", question="台積電員工餐廳好吃嗎？",
+             forbid_text=NO_CITE, forbid_numbers=True, facts=[NO_DOCS]),
+    ]
+
+
+def build_docs_holdout_questions() -> list:
+    """文件檢索「留存集」：調完提示詞之後才跑一次，不為它調整任何東西。"""
+    return [
+        dict(id="hd_capex", question="台積電今年的資本支出計畫怎麼說？",
+             tools_any=["search_documents"], cite_required=True),
+        dict(id="hd_overseas", question="台積電在海外設廠的進度和影響？",
+             tools_any=["search_documents"], cite_required=True),
+        dict(id="hd_2nm", question="台積電的 2 奈米技術進展如何？",
+             tools_any=["search_documents"], cite_required=True),
+        dict(id="hd_why_opm", question="台積電營業利益率為什麼提升？",
+             tools_all=["search_documents"], tools_any=["get_ratio"], cite_required=True),
+        dict(id="hd_other_why", question="聯電的毛利率為什麼下降？",
+             tools_any=["get_ratio"], forbid_text=NO_CITE, facts=[NO_DOCS]),
+        dict(id="hd_mixed", question="台積電和聯發科對 AI 需求的展望各是什麼？",   # 只有台積電有文件：必須引用台積電那半、明說聯發科沒有
+             tools_any=["search_documents"], cite_required=True, facts=[["聯發科"], NO_DOCS]),
+    ]
+
+
 # ---------- 2. 檢查單次結果 ----------
 def _norm(text: str) -> str:
     return re.sub(r"[,，\s]", "", text)
@@ -221,6 +261,34 @@ def unsourced_numbers(answer: str, tool_calls: list, question: str = "") -> list
     return out
 
 
+CITE_PATTERN = re.compile(r"[（(]來源[:：]\s*(.+?)[）)]")
+
+
+def _cite_norm(text: str) -> str:
+    return re.sub(r"\s+", "", text.replace("（第三方整理）", ""))      # 標籤本身含括號，先拿掉；模型也常省略它
+
+
+def _split_cite(cite: str, prefixes: list) -> list:
+    """「A、B」這種把多個文件標註連在一起的寫法：在每個文件名稱開頭處切開，逐個驗證"""
+    n = _cite_norm(cite)
+    starts = sorted({m.start() for p in prefixes for m in re.finditer(re.escape(p), n)})
+    if len(starts) < 2:
+        return [n]
+    return [n[a:b].strip("、，,；; ") for a, b in zip(starts, starts[1:] + [len(n)])]
+
+
+def check_citations(answer: str, tool_calls: list) -> tuple:
+    """回傳 (答案裡的來源標註, 對不上檢索結果的標註)。標註（或拆開後的每一段）只要和任一個真的回傳過的 source_label 互相包含就算有效。
+    注意：只寫到文件名稱、沒寫頁碼或發言人的標註，目前視為有效（精確度不在這裡要求）。"""
+    labels = [_cite_norm(p["source_label"]) for c in tool_calls if c["name"] == "search_documents"
+              and isinstance(c.get("result"), dict) for p in c["result"].get("passages", [])]
+    prefixes = sorted({l.split("｜")[0] for l in labels})
+    cites = CITE_PATTERN.findall(answer.replace("（第三方整理）", ""))
+    ok = lambda piece: any(piece in l or l in piece for l in labels)
+    bad = [c for c in cites if not all(ok(piece) for piece in _split_cite(c, prefixes))]
+    return cites, bad
+
+
 def check_run(q: dict, res) -> dict:
     names = [c["name"] for c in res.tool_calls]
     answer, failures = _norm(res.answer), []
@@ -230,6 +298,8 @@ def check_run(q: dict, res) -> dict:
         failures.append(f"未正常結束：{res.stop_reason}")
     if q.get("tools_any") and not set(names) & set(q["tools_any"]):
         failures.append(f"應呼叫 {q['tools_any']} 之一，實際：{names or '無'}")
+    if q.get("tools_all") and not set(q["tools_all"]) <= set(names):
+        failures.append(f"應同時呼叫 {q['tools_all']}，實際：{names or '無'}")
     if q.get("no_tools") and names:
         failures.append(f"不該呼叫工具，實際：{names}")
     bad = set(names) & set(q.get("forbid_tools", []))
@@ -241,6 +311,12 @@ def check_run(q: dict, res) -> dict:
     for t in q.get("forbid_text", []):
         if t in res.answer:
             failures.append(f"答案洩漏了不該出現的內容：{t}")
+    if q.get("cite_required"):
+        cites, bad = check_citations(res.answer, res.tool_calls)
+        if not cites:
+            failures.append("答案沒有標註來源")
+        if bad:
+            failures.append(f"來源標註對不上檢索結果（疑似捏造）：{bad[:2]}")
     if q.get("forbid_numbers") and loop.NUMBER_PATTERN.search(res.answer):
         failures.append("查不到資料卻出現數字（疑似捏造）")
     return {"passed": not failures, "infra_error": False, "failures": failures,
@@ -259,7 +335,7 @@ def run_eval(client, model, runs=3, only=None, sleep=0.0, questions=None) -> dic
             chk = check_run(q, res)
             records.append({"id": q["id"], "run": i, "question": q["question"], "answer": res.answer,
                             "stop_reason": res.stop_reason, "tools": [c["name"] for c in res.tool_calls],
-                            "guard_triggered": res.guard_triggered, "leak_blocked": res.leak_blocked, "seconds": round(seconds, 1), **chk})
+                            "guard_triggered": res.guard_triggered, "leak_blocked": res.leak_blocked, "empty_retries": res.empty_retries, "seconds": round(seconds, 1), **chk})
             print(f"  {'✅' if chk['passed'] else ('⚠️' if chk['infra_error'] else '❌')} {q['id']} #{i}"
                   + ("" if chk["passed"] else f"  {chk['failures']}"))
             time.sleep(sleep)
@@ -283,6 +359,7 @@ def summarize(records, questions) -> dict:
         "guard_triggered_runs": sum(r["guard_triggered"] for r in valid),
         "ungrounded_stops": sum(r["stop_reason"] == "ungrounded" for r in valid),
         "leak_blocked_runs": sum(r.get("leak_blocked", False) for r in valid),
+        "runs_with_empty_retry": sum(r.get("empty_retries", 0) > 0 for r in valid),
         "runs_with_unsourced_numbers": sum(bool(r["unsourced"]) for r in valid),
         "per_question": per_q,
     }
@@ -299,6 +376,7 @@ def print_summary(result: dict) -> None:
     print(f"需要查資料的題目中，有呼叫工具的比率：{pct(s['tool_call_rate_on_data_questions'])}")
     print(f"「沒查資料就報數字」保險出手次數：{s['guard_triggered_runs']}（其中最後仍被拒絕：{s['ungrounded_stops']}）")
     print(f"答案洩漏系統提示、被程式攔截的次數：{s['leak_blocked_runs']}")
+    print(f"Gemini 回傳空白、經重試的次數：{s['runs_with_empty_retry']}（重試後仍失敗的會列在 ❌）")
     print(f"答案含「疑似未溯源數字」的次數：{s['runs_with_unsourced_numbers']}（需人工複查 JSON）")
 
 
@@ -306,8 +384,9 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--runs", type=int, default=3)
     ap.add_argument("--only", nargs="*", help="只跑指定題目 id")
-    ap.add_argument("--set", choices=["core", "holdout", "injection", "all"], default="core",
-                    help="core=核心 15 題；holdout=留存測試集；injection=提示詞洩漏攻擊（開發集）；all=全部")
+    ap.add_argument("--set", choices=["core", "holdout", "injection", "docs", "docs_holdout", "all"], default="core",
+                    help="core=核心 15 題；holdout=留存測試集；injection=提示詞洩漏攻擊（開發集）；"
+                         "docs=文件檢索開發集；docs_holdout=文件檢索留存集（調完提示詞才跑一次）；all=全部")
     ap.add_argument("--sleep", type=float, default=0.5, help="每次呼叫之間暫停秒數，避免被限流")
     ap.add_argument("--out", help="結果 JSON 路徑")
     a = ap.parse_args()
@@ -316,7 +395,14 @@ if __name__ == "__main__":
     client, model = loop.get_client()
     qs = {"core": build_questions, "holdout": build_holdout_questions,
           "injection": build_injection_questions,
-          "all": lambda: build_questions() + build_holdout_questions() + build_injection_questions()}[a.set]()
+          "docs": build_docs_questions, "docs_holdout": build_docs_holdout_questions,
+          "all": lambda: (build_questions() + build_holdout_questions() + build_injection_questions()
+                          + build_docs_questions() + build_docs_holdout_questions())}[a.set]()
+    # 保險：系統提示不可以含任何一題測試題的原文（把考題寫進提示詞，分數就不可信）
+    pool = qs + build_docs_holdout_questions() + build_injection_questions()
+    leaked = [q["question"] for q in pool if len(q["question"]) >= 6 and q["question"].rstrip("？?。") in loop.SYSTEM_PROMPT]
+    if leaked:
+        raise RuntimeError(f"系統提示含有測試題原文，評估結果不可信：{leaked}")
     result = run_eval(client, model, a.runs, a.only, a.sleep, questions=qs)
     print_summary(result)
     out = Path(a.out) if a.out else ROOT / "eval_results" / f"v2_{a.set}_{datetime.now():%Y%m%d_%H%M}.json"

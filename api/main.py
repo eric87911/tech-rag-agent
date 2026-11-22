@@ -4,8 +4,8 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Query
 
-from api import db, service
-from api.schemas import (PERIOD_PATTERN, CompaniesResponse, FinancialsResponse,
+from api import db, documents, service
+from api.schemas import (PERIOD_PATTERN, CompaniesResponse, DocumentSearchResponse, FinancialsResponse,
                          HealthResponse, ItemInfo, Item, Order, PeriodsResponse,
                          RankingsResponse, RatioMetric, RatiosResponse)
 
@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     db.check_database()          # 檢查沒過就直接拒絕啟動
+    documents.check_documents()  # 文件檢索是選用功能：失敗只警告，不阻止啟動
     yield
 
 
@@ -132,3 +133,17 @@ def get_ratios(
     if result is None:
         raise HTTPException(status_code=404, detail=f"查無資料：{code} / {metric.value}")
     return RatiosResponse(code=code, metric=metric.value, **result)
+
+
+@app.get("/documents/search", response_model=DocumentSearchResponse)
+def search_documents(
+    q: str = Query(..., min_length=2, max_length=200, description="要在文件中找的問題或關鍵概念"),
+    top_k: int = Query(5, ge=1, le=8, description="最多回傳幾段"),
+    company: str | None = Query(None, min_length=1, max_length=30, description="所問的公司（名稱、暱稱或代號）；文件庫沒有該公司時直接回空"),
+):
+    """在法說會逐字稿、年報等文件中找相關段落。找不到相關內容時回 200 與空串列（不是錯誤）。"""
+    try:
+        passages, coverage, note = documents.search(q, top_k, company)
+    except documents.DocumentsUnavailable:
+        raise HTTPException(status_code=503, detail="文件檢索暫時無法使用")
+    return DocumentSearchResponse(query=q, count=len(passages), passages=passages, coverage=coverage, note=note)

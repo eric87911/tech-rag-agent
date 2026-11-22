@@ -149,3 +149,22 @@ class RatiosResponse(BaseModel):
     data: list[RatioPoint]
     summary: RatioSummary | None = Field(description="最高、最低、首尾變化；由程式計算，沒有資料時為 None")
     skipped_periods: list[SkippedPeriod] = Field(description="無法計算的期間與原因（缺資料不會被默默略過）")
+
+
+class Passage(BaseModel):
+    rank: int
+    score: float = Field(description="相似度，越接近 1 越相關")
+    source_label: str
+    company: str
+    doc_type: str
+    period: str
+    location: str
+    text: str
+
+
+class DocumentSearchResponse(BaseModel):
+    query: str
+    count: int
+    passages: list[Passage]
+    coverage: list[str] = Field(description="文件庫目前涵蓋的文件；count 為 0 時，用它告訴使用者「哪些文件有查過」")
+    note: str | None = Field(default=None, description="例如文件庫沒有所問公司的文件時的說明")
