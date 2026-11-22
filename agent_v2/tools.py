@@ -22,6 +22,7 @@ ITEMS = [
     "eps", "gross_profit", "inventory", "long_term_debt", "operating_expenses",
     "operating_income", "ppe", "retained_earnings", "revenue",
 ]
+RATIO_METRICS = ["gross_margin", "operating_margin", "opex_ratio"]
 ITEM_HELP = ("財報科目代碼：revenue=營收, cogs=銷貨成本, gross_profit=毛利, operating_expenses=營業費用, "
              "operating_income=營業利益, eps=每股盈餘, cash_equivalents=現金, accounts_receivable=應收帳款, "
              "inventory=存貨, current_assets=流動資產, ppe=不動產廠房設備, accounts_payable=應付帳款, "
@@ -71,6 +72,22 @@ TOOL_DECLARATIONS = [
         }, required=["item", "period"]),
     ),
 ]
+TOOL_DECLARATIONS.append(
+    types.FunctionDeclaration(
+        name="get_ratio",
+        description=("計算「某一家公司」的財務比率（毛利率、營業利益率、營業費用率）在一段期間的走勢。"
+                     "比率由程式計算，需要比率時一律用這個工具，不要自己拿兩個數字相除。"
+                     "回傳的 ratio_pct 是百分比。若 skipped_periods 不是空的，回答時必須說明哪些期間缺資料。"
+                     "資料範圍 2021Q1～2025Q4，沒有指定期間會回傳全部期間。"),
+        parameters=S(type="OBJECT", properties={
+            "code": _str("股票代號，例如 2330（先用 search_company 取得）"),
+            "metric": _str("gross_margin=毛利率, operating_margin=營業利益率, opex_ratio=營業費用率",
+                           enum=RATIO_METRICS),
+            "period_from": _str("起始期間，格式 2024Q1，可省略"),
+            "period_to": _str("結束期間，格式 2025Q4，可省略"),
+        }, required=["code", "metric"]),
+    )
+)
 GEMINI_TOOLS = [types.Tool(function_declarations=TOOL_DECLARATIONS)]
 
 # ---------- 2. 工具名稱 → (HTTP 路徑, 允許的參數)，白名單 ----------
@@ -78,6 +95,7 @@ _ROUTES = {
     "search_company": ("/companies", {"q"}),
     "get_financials": ("/financials", {"code", "item", "period_from", "period_to"}),
     "get_ranking": ("/rankings", {"item", "period", "top_n", "order", "industry"}),
+    "get_ratio": ("/ratios", {"code", "metric", "period_from", "period_to"}),
 }
 
 
@@ -121,7 +139,18 @@ def execute_tool(name: str, args: dict) -> dict:
 
 # ---------- 4. 啟動時檢查：工具宣告的科目清單是否和 API 同步 ----------
 def check_tools_in_sync() -> None:
-    items = {x["item"] for x in httpx.get(f"{API_BASE_URL}/items", timeout=HTTP_TIMEOUT).json()}
+    """啟動時檢查：工具宣告裡的列舉值，是否和 API 實際接受的一致。"""
+    try:
+        resp = httpx.get(f"{API_BASE_URL}/items", timeout=HTTP_TIMEOUT)
+        resp.raise_for_status()
+        schemas = httpx.get(f"{API_BASE_URL}/openapi.json", timeout=HTTP_TIMEOUT).json()["components"]["schemas"]
+    except httpx.HTTPError as e:
+        raise RuntimeError(f"連不上 API（{API_BASE_URL}）：{type(e).__name__}。"
+                           "請先在另一個終端機執行：uvicorn api.main:app") from e
+    items = {x["item"] for x in resp.json()}
     if items != set(ITEMS):
         raise RuntimeError(f"工具宣告與 API 的科目清單不一致：差異 {items ^ set(ITEMS)}")
-    logger.info("✅ 工具宣告與 API 科目清單一致")
+    metrics = set(schemas["RatioMetric"]["enum"])
+    if metrics != set(RATIO_METRICS):
+        raise RuntimeError(f"工具宣告與 API 的比率種類不一致：差異 {metrics ^ set(RATIO_METRICS)}")
+    logger.info("✅ 工具宣告與 API 一致（科目、比率種類）")
