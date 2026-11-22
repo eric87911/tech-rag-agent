@@ -39,14 +39,18 @@ SYSTEM_PROMPT = """你是台股財報問答助理。今天是 {today}。
 
 # 答案裡出現「帶單位的數字」（百分比、元、兆、億、千元）→ 視為在報告數字
 NUMBER_PATTERN = re.compile(r"\d[\d,]*(?:\.\d+)?\s*(?:%|％|兆|億|千元|元)")
-NUDGE = ("你的回答包含數字，但這次對話還沒有呼叫任何工具。所有數字都必須來自工具回傳，"
-         "請先呼叫適當的工具，再根據工具結果回答。")
+NUDGE = ("你的回答包含數字或股票代號，但這次對話還沒有呼叫任何工具。所有數字與公司代號都必須來自工具回傳，"
+         "請先呼叫適當的工具（例如 search_company），再根據工具結果回答。")
 UNGROUNDED_ANSWER = "抱歉，我無法確認這個答案的數字來源，所以不提供。請換個方式再問一次。"
 
 
+# 答案裡出現括號包起來的股票代號，例如 長榮海運 (2603)
+CODE_PATTERN = re.compile(r"[（(]\d{4,6}[)）]")
+
+
 def has_unsourced_numbers(text: str, tool_calls: list) -> bool:
-    """還沒呼叫過任何工具，答案卻在報告數字 → 這些數字只可能來自模型的記憶，不可信"""
-    return not tool_calls and bool(NUMBER_PATTERN.search(text))
+    """還沒呼叫過任何工具，答案卻在報告數字或股票代號 → 這些只可能來自模型的記憶，不可信"""
+    return not tool_calls and bool(NUMBER_PATTERN.search(text) or CODE_PATTERN.search(text))
 
 
 @dataclass

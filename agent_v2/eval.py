@@ -36,9 +36,21 @@ def _money(rec) -> list:           # 金額的可接受寫法：易讀版、原�
     return [rec["value_display"], f"{int(rec['value']):,}"]
 
 
+def check_api_version() -> None:
+    """標準答案要靠 API 的新欄位；如果 API 是用舊程式啟動的（沒加 --reload），在這裡就說清楚"""
+    try:
+        r = _get("/ratios", code="2330", metric="gross_margin", period_from="2025Q4", period_to="2025Q4")
+    except httpx.HTTPError as e:
+        raise RuntimeError(f"API 沒有正常回應（{type(e).__name__}）。請確認 uvicorn api.main:app --reload 正在執行。") from e
+    if "summary" not in r:
+        raise RuntimeError("API 還在執行舊版程式（回傳裡沒有 summary 欄位）。"
+                           "請按 Ctrl+C 停掉 uvicorn，再用 uvicorn api.main:app --reload 重新啟動。")
+
+
 def build_questions() -> list:
     """每題：tools_any=至少要呼叫其中一個；forbid_tools / no_tools；facts=多組「任一寫法出現即可」，全部組都要命中；
     forbid_numbers=答案不可出現帶單位的數字（查不到資料時不可編造）"""
+    check_api_version()
     tsmc_rev = _fin("2330", "revenue", "2025Q4")
     tw3_rev = _fin("3045", "revenue", "2025Q3")
     eps = _fin("2454", "eps", "2025Q4")
@@ -79,13 +91,14 @@ def build_questions() -> list:
         dict(id="compare", question="台積電和聯電 2025Q4 的營收，哪一家比較高？",
              tools_any=["get_financials"], facts=[["台積電", "台灣積體電路", "2330"], _money(umc_vs_tsmc)]),
         dict(id="ambiguous", question="長榮的營收是多少？",
-             forbid_tools=["get_financials"], facts=[["海運"], ["航空"]]),
+             tools_any=["search_company"],                       # 規則 2：公司身分必須查證，不能憑記憶
+             forbid_tools=["get_financials"], facts=[["海運", "2603"], ["航空", "2618"]]),
         dict(id="missing_data", question="長榮海運 2025Q4 的毛利率是多少？",
              tools_any=["get_ratio", "get_financials"], forbid_numbers=True, facts=[NO_DATA]),
         dict(id="out_of_range", question="台積電 2026Q2 的營收是多少？",
              forbid_numbers=True, facts=[NO_DATA + ["2025Q4"]]),
         dict(id="why_question", question="台積電毛利率為什麼一直上升？",
-             tools_any=["get_ratio"], facts=[[f"{gm_all['highest']['ratio_pct']:.2f}"], ["無法", "沒有", "不能", "目前"]]),
+             tools_any=["get_ratio"], facts=[[f"{gm_all['highest']['ratio_pct']:.2f}"], ["無法", "沒有", "不能", "尚無"]]),
         dict(id="advice", question="台積電現在值不值得買？",
              facts=[["投資建議", "無法", "不提供", "不能"]]),
         dict(id="out_of_scope", question="今天台北天氣如何？", no_tools=True),
@@ -97,11 +110,21 @@ def _norm(text: str) -> str:
     return re.sub(r"[,，\s]", "", text)
 
 
+def _number_tokens(text: str) -> set:
+    text = re.sub(r"(?<=\d),(?=\d{3})", "", text)               # 先去掉千分位逗號：1,046,090,421 → 1046090421
+    return {round(float(m), 6) for m in re.findall(r"-?\d+(?:\.\d+)?", text)}
+
+
 def unsourced_numbers(answer: str, tool_calls: list) -> list:
-    """答案中「帶單位的數字」若沒出現在任何工具回傳內容裡 → 疑似未溯源（需人工複查，不等於一定錯）"""
-    tool_text = _norm(json.dumps([c.get("result") for c in tool_calls], ensure_ascii=False))
-    nums = [re.match(r"[\d,]*\.?\d+", m.group(0)).group(0) for m in loop.NUMBER_PATTERN.finditer(answer)]
-    return [n for n in nums if _norm(n) not in tool_text]
+    """答案中「帶單位的數字」若沒出現在任何工具回傳內容裡 → 疑似未溯源（需人工複查，不等於一定錯）。
+    用「數值」比對而不是字串：答案寫 59.00、工具回傳 59.0 是同一個數字。"""
+    sourced = _number_tokens(json.dumps([c.get("result") for c in tool_calls], ensure_ascii=False))
+    out = []
+    for m in loop.NUMBER_PATTERN.finditer(answer):
+        n = re.match(r"[\d,]*\.?\d+", m.group(0)).group(0)
+        if round(float(n.replace(",", "")), 6) not in sourced:
+            out.append(n)
+    return out
 
 
 def check_run(q: dict, res) -> dict:
