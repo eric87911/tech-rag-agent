@@ -100,6 +100,6 @@ curl --cacert root.crt https://<網域>/health
 ## 尚未驗證
 
 - 公開網域上的 Let's Encrypt 自動憑證（這裡用內部 CA）。
-- 重新開機後服務自動啟動（只確認了 `enabled`）。
+- 在真正的雲端主機上整機重開機後的自動啟動：這裡只驗證了 OrbStack 機器停止再啟動（機器自己的 systemd 重啟，宿主核心未重開）後，API 與 Caddy 都自動啟動且 HTTPS 健康檢查通過；機制相同（`enabled` → `multi-user.target`），但不是整機重開。
 - 防火牆設定（雲端主機上需只開 22／80／443）。
 - `/openapi.json` 與 `/docs` 仍然公開。
