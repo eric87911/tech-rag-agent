@@ -1,0 +1,23 @@
+# /etc/caddy/Caddyfile
+# 本機練習用 `tls internal`（Caddy 自己的 CA）。有公開網域時：把網址換成網域、拿掉 tls internal，
+# Caddy 會自動向 Let's Encrypt 申請並續期憑證（需要 80/443 對外可達、DNS 指向這台機器）。
+ubuntu.orb.local {
+    tls internal
+    encode zstd gzip
+    reverse_proxy 127.0.0.1:8000
+    header {
+        X-Content-Type-Options nosniff
+        -Server
+    }
+    # Caddy 的存取日誌預設會記下所有請求標頭，只遮蔽 Authorization／Cookie，
+    # 自訂的 X-API-Key 會以明文進日誌，所以必須明確刪除。
+    # （Caddy 2.6 需要 fields { } 區塊；新版才支援直接寫在 format filter 底下的簡寫）
+    log {
+        format filter {
+            wrap json
+            fields {
+                request>headers>X-Api-Key delete
+            }
+        }
+    }
+}
