@@ -1,0 +1,30 @@
+services:
+  api:
+    build: .
+    image: tech-rag-api:v2
+    # 只綁本機。API 已有金鑰驗證與限流（api/security.py），但還沒有 HTTPS：
+    # 真正對外開放前，要放在帶 TLS 的反向代理（nginx／Caddy）後面，不要直接暴露 8000 埠。
+    ports:
+      - "127.0.0.1:8000:8000"
+    env_file: .env            # GEMINI_API_KEY、API_KEY 等：執行時注入，不烤進 image
+    volumes:
+      # 財報資料庫唯讀掛載：程式本來就以 mode=ro 開啟，這裡再從檔案系統層擋一次寫入
+      - ./data/finance.db:/app/data/finance.db:ro
+      # ChromaDB 即使只做查詢也要寫入自己的 sqlite（鎖檔），所以不能唯讀
+      - ./data/chroma:/app/data/chroma
+    restart: unless-stopped
+    mem_limit: 1g
+
+  # Agent／評估：用 `docker compose --profile tools run --rm agent` 才會啟動，平常不跑
+  agent:
+    build: .
+    image: tech-rag-api:v2
+    profiles: ["tools"]
+    env_file: .env
+    environment:
+      # 同一個 compose 網路裡，用服務名稱當主機名；不要寫 127.0.0.1（那是 agent 容器自己）
+      API_BASE_URL: http://api:8000
+    depends_on:
+      api:
+        condition: service_healthy
+    command: ["python", "-m", "agent_v2.loop", "台積電 2025Q4 的營收是多少？"]

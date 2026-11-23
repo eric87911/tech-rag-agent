@@ -1,0 +1,17 @@
+# 金鑰、資料、開發雜物都不進 image
+.env
+.venv/
+.git/
+.idea/
+__pycache__/
+*.pyc
+.DS_Store
+data/
+eval_results/
+docs/
+*.db
+*.zip
+*.md
+enter_method.txt
+Dockerfile
+docker-compose.yml

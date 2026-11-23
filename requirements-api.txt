@@ -1,0 +1,10 @@
+# API 與 Agent 在容器裡「執行」所需的最小依賴（只列直接依賴，版本取自開發環境的 requirements.txt）。
+# 間接依賴的版本由 Dockerfile 的 `-c requirements.txt`（constraints）鎖定。
+# 不含：streamlit、pandas（清洗資料用）、pymupdf（建向量庫用）——這些是「建置資料」的依賴，不是「執行服務」的依賴。
+fastapi==0.165.0
+uvicorn==0.54.0
+pydantic==2.13.5
+httpx==0.28.1
+python-dotenv==1.2.3
+google-genai==2.26.0
+chromadb==1.5.9

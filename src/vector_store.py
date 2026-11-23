@@ -8,8 +8,6 @@ from dotenv import load_dotenv
 from google import genai
 from google.genai import types
 
-from chunker import build_chunks
-from doc_loader import load_all
 
 logger = logging.getLogger(__name__)
 
@@ -65,6 +63,10 @@ def get_collection():
 
 
 def build_index():
+    # 只有「建庫」需要解析 PDF；查詢時不載入，這樣部署環境不必安裝 pymupdf
+    from chunker import build_chunks
+    from doc_loader import load_all
+
     chunks = build_chunks(load_all())
     if not chunks:
         raise RuntimeError("沒有任何文件段落，請確認 data/docs 裡有檔案")

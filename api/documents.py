@@ -58,7 +58,7 @@ def _init() -> None:
             coverage = sorted({_label(m, with_location=False) for m in metas})
             doc_companies = sorted({m["company"] for m in metas})
         except Exception as e:
-            logger.error(f"文件檢索初始化失敗：{type(e).__name__}: {e}")
+            logger.error("文件檢索初始化失敗：%s: %s", type(e).__name__, e, exc_info=True)   # 完整堆疊：部署後只能靠日誌排錯
             raise DocumentsUnavailable("init failed") from e
         _ctx.update(retrieve=retrieve, collection=collection, client=client, model=model,
                     coverage=coverage, doc_companies=doc_companies)

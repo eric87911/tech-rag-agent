@@ -32,7 +32,7 @@ def estimate_cost(u: dict) -> float:
 
 # ---------- 1. 向 API 查標準答案 ----------
 def _get(path: str, **params) -> dict:
-    r = httpx.get(f"{tools.API_BASE_URL}{path}", params=params, timeout=tools.HTTP_TIMEOUT)
+    r = httpx.get(f"{tools.API_BASE_URL}{path}", params=params, headers=tools.api_headers(), timeout=tools.HTTP_TIMEOUT)
     r.raise_for_status()
     return r.json()
 

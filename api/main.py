@@ -2,9 +2,9 @@
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import Depends, FastAPI, HTTPException, Query
 
-from api import db, documents, service
+from api import db, documents, security, service
 from api.schemas import (PERIOD_PATTERN, CompaniesResponse, DocumentSearchResponse, FinancialsResponse,
                          HealthResponse, ItemInfo, Item, Order, PeriodsResponse,
                          RankingsResponse, RatioMetric, RatiosResponse)
@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    security.check_config()      # 沒設金鑰就直接拒絕啟動（預設拒絕）
     db.check_database()          # 檢查沒過就直接拒絕啟動
     documents.check_documents()  # 文件檢索是選用功能：失敗只警告，不阻止啟動
     yield
@@ -22,8 +23,13 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Tech Finance API", version="2.0", lifespan=lifespan)
 
+# 除了 /health（健康檢查要用，不含敏感資料）之外，每個端點都要驗證金鑰並受限流。
+# tests/test_security.py 會檢查：之後新增的端點如果忘了加，測試會失敗。
+PROTECTED = [Depends(security.rate_limit_general)]
+DOCS_PROTECTED = [Depends(security.rate_limit_docs)]   # 文件檢索每次都花錢，另外限得更緊
 
-@app.get("/financials", response_model=FinancialsResponse)
+
+@app.get("/financials", dependencies=PROTECTED, response_model=FinancialsResponse)
 def get_financials(
     code: str = Query(..., pattern=r"^\d{4,6}$", description="股票代號，例如 2330"),
     item: Item = Query(..., description="財報科目，例如 revenue"),
@@ -67,7 +73,7 @@ def health():
     return HealthResponse(status="ok", latest_period=rows[0]["latest"])
 
 
-@app.get("/companies", response_model=CompaniesResponse)
+@app.get("/companies", dependencies=PROTECTED, response_model=CompaniesResponse)
 def search_companies(q: str = Query(..., min_length=1, max_length=20, description="代號、公司名或暱稱，例如 台積電")):
     """把使用者的說法對應成股票代號。可能回傳多家（例如「長榮」），呼叫端要自己處理歧義。"""
     try:
@@ -79,7 +85,7 @@ def search_companies(q: str = Query(..., min_length=1, max_length=20, descriptio
     return CompaniesResponse(count=len(data), data=data)
 
 
-@app.get("/items", response_model=list[ItemInfo])
+@app.get("/items", dependencies=PROTECTED, response_model=list[ItemInfo])
 def list_items():
     try:
         rows, _ = db.fetch_all("SELECT DISTINCT item, display_name, unit FROM v_financials ORDER BY item")
@@ -88,7 +94,7 @@ def list_items():
     return [{**r, "kind": service.item_kind(r["item"])} for r in rows]
 
 
-@app.get("/periods", response_model=PeriodsResponse)
+@app.get("/periods", dependencies=PROTECTED, response_model=PeriodsResponse)
 def list_periods():
     try:
         rows, _ = db.fetch_all("SELECT DISTINCT period FROM v_financials ORDER BY period")
@@ -98,7 +104,7 @@ def list_periods():
     return PeriodsResponse(earliest=periods[0], latest=periods[-1], periods=periods)
 
 
-@app.get("/rankings", response_model=RankingsResponse)
+@app.get("/rankings", dependencies=PROTECTED, response_model=RankingsResponse)
 def get_rankings(
     item: Item = Query(..., description="財報科目，例如 revenue"),
     period: str = Query(..., pattern=PERIOD_PATTERN, description="期間，例如 2025Q4"),
@@ -116,7 +122,7 @@ def get_rankings(
     return RankingsResponse(item=item.value, period=period, order=order.value, industry=industry, **result)
 
 
-@app.get("/ratios", response_model=RatiosResponse)
+@app.get("/ratios", dependencies=PROTECTED, response_model=RatiosResponse)
 def get_ratios(
     code: str = Query(..., pattern=r"^\d{4,6}$", description="股票代號，例如 2330"),
     metric: RatioMetric = Query(..., description="gross_margin=毛利率, operating_margin=營業利益率, opex_ratio=營業費用率"),
@@ -135,7 +141,7 @@ def get_ratios(
     return RatiosResponse(code=code, metric=metric.value, **result)
 
 
-@app.get("/documents/search", response_model=DocumentSearchResponse)
+@app.get("/documents/search", dependencies=DOCS_PROTECTED, response_model=DocumentSearchResponse)
 def search_documents(
     q: str = Query(..., min_length=2, max_length=200, description="要在文件中找的問題或關鍵概念"),
     top_k: int = Query(5, ge=1, le=8, description="最多回傳幾段"),

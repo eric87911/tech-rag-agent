@@ -8,15 +8,24 @@
 import logging
 import os
 import time
+from pathlib import Path
 
 import httpx
+from dotenv import load_dotenv
 from google.genai import types
 
 logger = logging.getLogger(__name__)
 
+load_dotenv(Path(__file__).resolve().parent.parent / ".env")   # 本機執行時讀 .env（容器內由環境變數注入）
 API_BASE_URL = os.getenv("API_BASE_URL", "http://127.0.0.1:8000")
 HTTP_TIMEOUT = 10  # 秒
 TOOL_TIMEOUTS = {"search_documents": 30}   # 文件檢索要先做向量嵌入（遇 429 會重試等待），給長一點
+
+
+def api_headers() -> dict:
+    """呼叫 API 要帶的金鑰。服務端可設多把（逗號分隔），客戶端只用第一把。"""
+    key = os.getenv("API_KEY", "").split(",")[0].strip()
+    return {"X-API-Key": key} if key else {}
 
 ITEMS = [
     "accounts_payable", "accounts_receivable", "cash_equivalents", "cogs", "current_assets",
@@ -139,13 +148,20 @@ def execute_tool(name: str, args: dict) -> dict:
     params = _clean_args(args, allowed)
     start = time.perf_counter()
     try:
-        resp = httpx.get(f"{API_BASE_URL}{path}", params=params, timeout=TOOL_TIMEOUTS.get(name, HTTP_TIMEOUT))
+        resp = httpx.get(f"{API_BASE_URL}{path}", params=params, headers=api_headers(),
+                         timeout=TOOL_TIMEOUTS.get(name, HTTP_TIMEOUT))
     except httpx.HTTPError as e:
         logger.error(f"工具 {name} 無法連線到 API：{type(e).__name__}: {e}")
         return {"error": "api_unavailable", "message": "資料服務暫時無法連線"}
     ms = (time.perf_counter() - start) * 1000
     logger.info(f"工具 {name}({params}) → HTTP {resp.status_code}，{ms:.0f}ms")
 
+    # 驗證與限流的細節不交給模型（它可能照講給使用者聽）：只記錄在日誌，回傳中性訊息
+    if resp.status_code in (401, 403):
+        logger.error("API 拒絕了金鑰（HTTP %s）：請確認 API_KEY 與服務端一致", resp.status_code)
+        return {"error": "service_error", "message": "資料服務暫時無法使用"}
+    if resp.status_code == 429:
+        return {"error": "rate_limited", "message": "查詢太頻繁，請稍後再試"}
     if resp.status_code == 200:
         return resp.json()
     # 404 = 查無資料；422 = 參數有誤；503 = 服務問題。把原因原樣交給模型，由模型決定怎麼回應
@@ -158,10 +174,14 @@ def execute_tool(name: str, args: dict) -> dict:
 def check_tools_in_sync() -> None:
     """啟動時檢查：工具宣告裡的列舉值，是否和 API 實際接受的一致。"""
     try:
-        resp = httpx.get(f"{API_BASE_URL}/items", timeout=HTTP_TIMEOUT)
+        resp = httpx.get(f"{API_BASE_URL}/items", headers=api_headers(), timeout=HTTP_TIMEOUT)
         resp.raise_for_status()
         spec = httpx.get(f"{API_BASE_URL}/openapi.json", timeout=HTTP_TIMEOUT).json()
         schemas = spec["components"]["schemas"]
+    except httpx.HTTPStatusError as e:      # 要放在 HTTPError 前面（它是子類別），否則 401 會被說成「連不上」
+        if e.response.status_code == 401:
+            raise RuntimeError("API 拒絕了金鑰（401）：請確認 .env 的 API_KEY 與 API 服務端一致") from e
+        raise RuntimeError(f"API 回應異常：HTTP {e.response.status_code}") from e
     except httpx.HTTPError as e:
         raise RuntimeError(f"連不上 API（{API_BASE_URL}）：{type(e).__name__}。"
                            "請先在另一個終端機執行：uvicorn api.main:app") from e

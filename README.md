@@ -45,6 +45,7 @@ flowchart TD
 - **向量庫是可選依賴**：載入失敗時 `/documents/search` 回 503，財報 API 不受影響。
 - **文件檢索按公司過濾**：向量相似度分不出問題在問哪家公司。實測問「聯發科毛利率為什麼下降」曾回傳 2 段台積電的 Q&A，因此 `company` 參數先對應到有文件的公司，沒有就直接回空並說明文件庫涵蓋範圍。
 - **數字題先查數字，再查原因**：「為什麼」類問題先用財報確認前提是否成立（含文件庫沒有的公司），再去文件找原因。
+- **API 金鑰驗證與限流**（`api/security.py`）：預設拒絕（沒設 `API_KEY` 就不啟動）、金鑰可多把以便輪替、固定時間比對、金鑰不進日誌；限流依「驗證過的金鑰」計算（容器與反向代理後面看不出真實 IP），`/documents/search` 每次都會呼叫 Gemini，因此另有更緊的額度。工具層遇到 401／429 時只給模型中性訊息，不交出驗證細節。測試會檢查「每個端點（除 `/health`）都有驗證」，新增端點忘了加會失敗。
 - **啟動時檢查工具宣告**：確認每個工具對應的路徑真的存在於 API 的 `/openapi.json`，避免 API 改版後工具沒跟上。
 
 ### 防護層（全部在程式端，不依賴提示詞）
@@ -87,6 +88,14 @@ flowchart TD
 
 ## 啟動 v2（macOS）
 
+先在 `.env` 加上 API 金鑰（至少 16 字元），服務端與 Agent 共用：
+
+```bash
+printf '\nAPI_KEY=%s\n' "$(python -c 'import secrets; print(secrets.token_urlsafe(32))')" >> .env
+```
+
+本機開發若想略過驗證，須明確設 `AUTH_DISABLED=1`；沒設任何一個，API 會拒絕啟動。
+
 ```bash
 # 終端機 1：資料 API（互動文件在 http://127.0.0.1:8000/docs）
 uvicorn api.main:app --reload
@@ -101,11 +110,23 @@ python -m agent_v2.eval --set docs --runs 1
 
 評估結果（含每次的完整答案與 token 用量）存在 `eval_results/`。
 
+## 容器部署
+
+```bash
+docker compose up -d --wait api                 # 等健康檢查通過才返回
+docker compose --profile tools run --rm agent   # 在同一個 compose 網路內跑 Agent
+python -m pytest -q tests                       # 安全測試（需 pip install -r requirements-dev.txt）
+```
+
+image 只含程式碼；財報資料庫（唯讀）與向量庫以 volume 掛入，金鑰以環境變數注入。埠只綁 `127.0.0.1`。
+
 ## v2 已知限制
 
 - **引用只驗證「來源存在」，不驗證「來源支持該句話」**；許多引用只到文件層級。
 - **洩漏過濾抓不到不含內部名稱的改寫**。
 - **Gemini 偶發回傳空白**，以重試緩解，根因未明，重試也不保證成功（核心題 5 次中有 1 題曾兩次重試仍空白）。
+- 限流狀態存在記憶體：單一 worker 準確，多 worker 時實際上限會乘上 worker 數（精確限流需共用儲存，如 Redis）。
+- 尚未加 HTTPS：金鑰在明文連線上傳送，真正對外開放前必須放在帶 TLS 的反向代理後面；`/openapi.json` 與 `/docs` 目前是公開的。
 - 股票代號若不加括號寫在答案裡，數字溯源保險不會檢查到。
 - 文件檢索只涵蓋台積電；沒有多輪對話記憶；回答偏長，沒有長度規則。
 - 資料品質：10 家公司缺 2025Q4 營收；17 筆毛利與（營收 − 成本）不一致（皆為光寶）；與官方數字的核對只做了台積電。
