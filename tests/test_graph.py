@@ -148,3 +148,26 @@ def test_graph_structure_has_expected_nodes():
     mermaid = graph.build_graph(None, "m").get_graph().draw_mermaid()
     for node in ("call_model", "run_tools", "guard_empty", "guard_ungrounded", "guard_leak", "guard_docs", "nudge", "finish", "max_steps"):
         assert node in mermaid
+
+
+def test_history_is_placed_before_the_new_question():
+    history = [{"q": "台積電 2025Q4 營收？", "a": "1.05 兆元"}, {"q": "那毛利率？", "a": "59%"}]
+    c = FakeClient([Resp("好的")])
+    res = graph.run_agent_graph("那聯電呢？", c, "m", history=history)
+    assert res.stop_reason == "done" and c.seen == [(5, 0)]          # 2 輪 × 2 則 + 新問題
+
+
+def test_history_none_or_empty_is_identical_to_no_history():
+    for h in (None, []):
+        c1, c2 = FakeClient([Resp("你好")]), FakeClient([Resp("你好")])
+        a = observe(graph.run_agent_graph("問題", c1, "m"), c1)
+        b = observe(graph.run_agent_graph("問題", c2, "m", history=h), c2)
+        assert a == b
+
+
+def test_stale_numbers_from_history_still_trip_the_unsourced_guard():
+    # 使用者追問，模型直接沿用上一輪的數字、沒有重新查 → 守衛要攔下並要求重查（記憶不能繞過「數字必須是這一輪查來的」）
+    history = [{"q": "台積電毛利率？", "a": "台積電 2025Q4 毛利率為 59.2%"}]
+    c = FakeClient([Resp("毛利率是 59.2%"), Resp(calls=[call("get_ratio", code="2330")]), Resp("已重新查詢")])
+    res = graph.run_agent_graph("剛剛那個數字再說一次", c, "m", history=history)
+    assert res.guard_triggered is True and len(res.tool_calls) == 1 and res.stop_reason == "done"

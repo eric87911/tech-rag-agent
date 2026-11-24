@@ -23,7 +23,7 @@ from typing import Any, TypedDict
 from google.genai import types
 from langgraph.graph import END, START, StateGraph
 
-from agent_v2 import tools
+from agent_v2 import memory, tools
 from agent_v2.loop import (EMPTY_RETRY_TEMPERATURES, LEAK_REFUSAL, MAX_STEPS, NUDGE, NUDGE_DOCS, SYSTEM_PROMPT,
                            UNGROUNDED_ANSWER, AgentResult, _latest_period, claims_no_docs_without_search,
                            get_client, has_unsourced_numbers, leaks_system_prompt)
@@ -191,14 +191,17 @@ def build_graph(client, model: str):
     g.add_conditional_edges("nudge", retry_or_stop, ["call_model", "max_steps"])
     g.add_edge("finish", END)
     g.add_edge("max_steps", END)
-    return g.compile()
+    # checkpointer=False：明確不存檔。否則在外層聊天圖（chat.py）的節點裡呼叫時，會繼承外層的 checkpointer，
+    # 把 Gemini 回應物件、思考簽章這些不能序列化的東西拿去存檔而出錯；內層本來就不需要被記住。
+    return g.compile(checkpointer=False)
 
 
-def run_agent_graph(question: str, client, model: str, max_steps: int = MAX_STEPS) -> AgentResult:
-    """與 loop.run_agent 相同的簽名與回傳型別，可以直接互換"""
+def run_agent_graph(question: str, client, model: str, max_steps: int = MAX_STEPS, history: list | None = None) -> AgentResult:
+    """與 loop.run_agent 相同的簽名與回傳型別，可以直接互換；history 為 None 時行為與舊版完全一致。
+    history：[{"q","a"},...]，先前幾輪的純文字問答（見 memory.py），放在這一輪的問題之前"""
     system = SYSTEM_PROMPT.format(today=date.today().isoformat(), latest=_latest_period())
     init: AgentState = {
-        "system": system, "contents": [types.Content(role="user", parts=[types.Part.from_text(text=question)])],
+        "system": system, "contents": memory.to_contents(history) + [types.Content(role="user", parts=[types.Part.from_text(text=question)])],
         "tool_log": [], "seen": [], "step": 0, "max_steps": max_steps, "nudged": False, "docs_nudged": False,
         "empty_retries": 0, "usage": {"calls": 0, "prompt": 0, "cached": 0, "output": 0, "thinking": 0}, "pending_nudge": "",
     }

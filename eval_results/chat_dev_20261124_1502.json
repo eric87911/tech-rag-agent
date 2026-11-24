@@ -1,0 +1,417 @@
+{
+ "runs": 3,
+ "records": [
+  {
+   "set": "dev",
+   "id": "c_correction",
+   "run": 1,
+   "turns": [
+    {
+     "q": "台積電 2025Q4 的毛利率是多少？",
+     "answer": "台積電 2025Q4 的毛利率是 62.33%。",
+     "stop": "done",
+     "tools": [
+      "search_company",
+      "get_ratio"
+     ],
+     "remembered": true,
+     "guard": false,
+     "usage": {
+      "calls": 3,
+      "prompt": 6899,
+      "cached": 1606,
+      "output": 87,
+      "thinking": 240
+     }
+    },
+    {
+     "q": "我是問營業利益率",
+     "answer": "台積電 2025Q4 的營業利益率是 54%。",
+     "stop": "done",
+     "tools": [
+      "get_ratio"
+     ],
+     "remembered": true,
+     "guard": false,
+     "usage": {
+      "calls": 2,
+      "prompt": 4620,
+      "cached": 1690,
+      "output": 68,
+      "thinking": 73
+     }
+    }
+   ],
+   "passed": true,
+   "infra_error": false,
+   "failures": [],
+   "unsourced": []
+  },
+  {
+   "set": "dev",
+   "id": "c_four_turns",
+   "run": 1,
+   "turns": [
+    {
+     "q": "台積電 2025Q4 的營收是多少？",
+     "answer": "台積電 2025Q4 的營收是 1.05 兆元 (1,046,090,421 新台幣千元)。",
+     "stop": "done",
+     "tools": [
+      "get_financials"
+     ],
+     "remembered": true,
+     "guard": false,
+     "usage": {
+      "calls": 2,
+      "prompt": 4454,
+      "cached": 1650,
+      "output": 90,
+      "thinking": 120
+     }
+    },
+    {
+     "q": "那聯電呢？",
+     "answer": "聯電 2025Q4 的營收是 618.1 億元 (61,809,545 新台幣千元)。",
+     "stop": "done",
+     "tools": [
+      "search_company",
+      "get_financials"
+     ],
+     "remembered": true,
+     "guard": false,
+     "usage": {
+      "calls": 3,
+      "prompt": 6904,
+      "cached": 3289,
+      "output": 103,
+      "thinking": 127
+     }
+    },
+    {
+     "q": "那聯發科呢？",
+     "answer": "聯發科 2025Q4 的營收是 1,501.9 億元 (150,188,010 新台幣千元)。",
+     "stop": "done",
+     "tools": [
+      "search_company",
+      "get_financials"
+     ],
+     "remembered": true,
+     "guard": false,
+     "usage": {
+      "calls": 3,
+      "prompt": 7050,
+      "cached": 5036,
+      "output": 108,
+      "thinking": 191
+     }
+    },
+    {
+     "q": "這三家依營收由高到低排一下",
+     "answer": "這三家公司 2025Q4 的營收由高到低排名如下：\n\n1.  **台積電 (2330)**：1.05 兆元 (1,046,090,421 新台幣千元)\n2.  **聯發科 (2454)**：1,501.9 億元 (150,188,010 新台幣千元)\n3.  **聯電 (2303)**：618.1 億元 (61,809,545 新台幣千元)",
+     "stop": "done",
+     "tools": [
+      "search_company",
+      "search_company",
+      "search_company",
+      "get_financials",
+      "get_financials",
+      "get_financials"
+     ],
+     "remembered": true,
+     "guard": true,
+     "usage": {
+      "calls": 4,
+      "prompt": 10724,
+      "cached": 4245,
+      "output": 469,
+      "thinking": 569
+     }
+    }
+   ],
+   "passed": true,
+   "infra_error": false,
+   "failures": [],
+   "unsourced": []
+  },
+  {
+   "set": "dev",
+   "id": "c_correction",
+   "run": 2,
+   "turns": [
+    {
+     "q": "台積電 2025Q4 的毛利率是多少？",
+     "answer": "台積電 2025Q4 的毛利率是 62.33%。",
+     "stop": "done",
+     "tools": [
+      "search_company",
+      "get_ratio"
+     ],
+     "remembered": true,
+     "guard": false,
+     "usage": {
+      "calls": 3,
+      "prompt": 6899,
+      "cached": 4998,
+      "output": 87,
+      "thinking": 229
+     }
+    },
+    {
+     "q": "我是問營業利益率",
+     "answer": "台積電 2025Q4 的營業利益率是 54%。",
+     "stop": "done",
+     "tools": [
+      "get_ratio"
+     ],
+     "remembered": true,
+     "guard": false,
+     "usage": {
+      "calls": 2,
+      "prompt": 4620,
+      "cached": 3400,
+      "output": 68,
+      "thinking": 73
+     }
+    }
+   ],
+   "passed": true,
+   "infra_error": false,
+   "failures": [],
+   "unsourced": []
+  },
+  {
+   "set": "dev",
+   "id": "c_four_turns",
+   "run": 2,
+   "turns": [
+    {
+     "q": "台積電 2025Q4 的營收是多少？",
+     "answer": "台積電 2025Q4 的營收是 1.05 兆元 (1,046,090,421 新台幣千元)。",
+     "stop": "done",
+     "tools": [
+      "get_financials"
+     ],
+     "remembered": true,
+     "guard": false,
+     "usage": {
+      "calls": 2,
+      "prompt": 4454,
+      "cached": 3362,
+      "output": 90,
+      "thinking": 120
+     }
+    },
+    {
+     "q": "那聯電呢？",
+     "answer": "聯電 2025Q4 的營收是 618.1 億元 (61,809,545 新台幣千元)。",
+     "stop": "done",
+     "tools": [
+      "search_company",
+      "get_financials"
+     ],
+     "remembered": true,
+     "guard": false,
+     "usage": {
+      "calls": 3,
+      "prompt": 6904,
+      "cached": 4997,
+      "output": 103,
+      "thinking": 131
+     }
+    },
+    {
+     "q": "那聯發科呢？",
+     "answer": "聯發科 2025Q4 的營收是 1,501.9 億元 (150,188,010 新台幣千元)。",
+     "stop": "done",
+     "tools": [
+      "search_company",
+      "get_financials"
+     ],
+     "remembered": true,
+     "guard": false,
+     "usage": {
+      "calls": 3,
+      "prompt": 7050,
+      "cached": 5045,
+      "output": 108,
+      "thinking": 151
+     }
+    },
+    {
+     "q": "這三家依營收由高到低排一下",
+     "answer": "這三家公司 2025Q4 的營收由高到低排名如下：\n\n1.  **台積電 (2330)**：1.05 兆元 (1,046,090,421 新台幣千元)\n2.  **聯發科 (2454)**：1,501.9 億元 (150,188,010 新台幣千元)\n3.  **聯電 (2303)**：618.1 億元 (61,809,545 新台幣千元)",
+     "stop": "done",
+     "tools": [
+      "search_company",
+      "search_company",
+      "search_company",
+      "get_financials",
+      "get_financials",
+      "get_financials"
+     ],
+     "remembered": true,
+     "guard": true,
+     "usage": {
+      "calls": 4,
+      "prompt": 10786,
+      "cached": 3448,
+      "output": 513,
+      "thinking": 429
+     }
+    }
+   ],
+   "passed": true,
+   "infra_error": false,
+   "failures": [],
+   "unsourced": []
+  },
+  {
+   "set": "dev",
+   "id": "c_correction",
+   "run": 3,
+   "turns": [
+    {
+     "q": "台積電 2025Q4 的毛利率是多少？",
+     "answer": "台積電 2025Q4 的毛利率是 62.33%。",
+     "stop": "done",
+     "tools": [
+      "search_company",
+      "get_ratio"
+     ],
+     "remembered": true,
+     "guard": false,
+     "usage": {
+      "calls": 3,
+      "prompt": 6899,
+      "cached": 5744,
+      "output": 87,
+      "thinking": 240
+     }
+    },
+    {
+     "q": "我是問營業利益率",
+     "answer": "台積電 2025Q4 的營業利益率是 54%。",
+     "stop": "done",
+     "tools": [
+      "get_ratio"
+     ],
+     "remembered": true,
+     "guard": false,
+     "usage": {
+      "calls": 2,
+      "prompt": 4620,
+      "cached": 3400,
+      "output": 68,
+      "thinking": 73
+     }
+    }
+   ],
+   "passed": true,
+   "infra_error": false,
+   "failures": [],
+   "unsourced": []
+  },
+  {
+   "set": "dev",
+   "id": "c_four_turns",
+   "run": 3,
+   "turns": [
+    {
+     "q": "台積電 2025Q4 的營收是多少？",
+     "answer": "台積電 2025Q4 的營收是 1.05 兆元 (新台幣 1,046,090,421 千元)。",
+     "stop": "done",
+     "tools": [
+      "search_company",
+      "get_financials"
+     ],
+     "remembered": true,
+     "guard": false,
+     "usage": {
+      "calls": 3,
+      "prompt": 6775,
+      "cached": 5017,
+      "output": 108,
+      "thinking": 207
+     }
+    },
+    {
+     "q": "那聯電呢？",
+     "answer": "聯電 2025Q4 的營收是 618.1 億元 (新台幣 61,809,545 千元)。",
+     "stop": "done",
+     "tools": [
+      "search_company",
+      "get_financials"
+     ],
+     "remembered": true,
+     "guard": false,
+     "usage": {
+      "calls": 3,
+      "prompt": 6907,
+      "cached": 1677,
+      "output": 104,
+      "thinking": 58
+     }
+    },
+    {
+     "q": "那聯發科呢？",
+     "answer": "聯發科 2025Q4 的營收是 1,501.9 億元 (新台幣 150,188,010 千元)。",
+     "stop": "done",
+     "tools": [
+      "search_company",
+      "get_financials"
+     ],
+     "remembered": true,
+     "guard": false,
+     "usage": {
+      "calls": 3,
+      "prompt": 7056,
+      "cached": 3341,
+      "output": 109,
+      "thinking": 105
+     }
+    },
+    {
+     "q": "這三家依營收由高到低排一下",
+     "answer": "這三家公司 2025Q4 的營收由高到低排名如下：\n\n1.  台積電 (2330)：1.05 兆元 (新台幣 1,046,090,421 千元)\n2.  聯發科 (2454)：1,501.9 億元 (新台幣 150,188,010 千元)\n3.  聯電 (2303)：618.1 億元 (新台幣 61,809,545 千元)",
+     "stop": "done",
+     "tools": [
+      "search_company",
+      "search_company",
+      "search_company",
+      "get_financials",
+      "get_financials",
+      "get_financials"
+     ],
+     "remembered": true,
+     "guard": true,
+     "usage": {
+      "calls": 4,
+      "prompt": 10769,
+      "cached": 6006,
+      "output": 484,
+      "thinking": 423
+     }
+    }
+   ],
+   "passed": true,
+   "infra_error": false,
+   "failures": [],
+   "unsourced": []
+  }
+ ],
+ "summary": {
+  "dev": {
+   "runs": 6,
+   "infra_errors": 0,
+   "passed": 6,
+   "valid": 6
+  }
+ },
+ "total_usage": {
+  "calls": 52,
+  "prompt": 124390,
+  "cached": 67951,
+  "output": 2854,
+  "thinking": 3559
+ }
+}
