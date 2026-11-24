@@ -127,6 +127,9 @@ def run_dialogue(chat, sink: list, d: dict) -> dict:
         turns.append({"q": text, "answer": tr.answer, "stop": tr.stop_reason, "tools": tr.tools, "remembered": tr.remembered, "guard": tr.guard_triggered, "usage": tr.usage})
         if tr.stop_reason == "error":
             return {"turns": turns, "passed": False, "infra_error": True, "failures": [f"第 {i} 輪 Gemini 呼叫失敗（不計入準確率）"]}
+        code = E.transient_tool_error(res)
+        if code and not last:      # 最後一句交給 check_run 判斷；中間句故障會讓後面的追問失去上下文，整段作廢
+            return {"turns": turns, "passed": False, "infra_error": True, "failures": [f"第 {i} 輪工具回報暫時性故障（{code}），不計入準確率"]}
         if not last and tr.stop_reason != "done":
             return {"turns": turns, "passed": False, "infra_error": False, "failures": [f"第 {i} 輪未正常結束：{tr.stop_reason}"]}
     q = {"id": d["id"], "question": d["turns"][-1], **{k: v for k, v in d.items() if k not in ("id", "turns")}}

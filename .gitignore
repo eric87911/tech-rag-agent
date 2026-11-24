@@ -11,3 +11,6 @@ data/reference/
 專案經歷素材_給履歷AI.md
 專案學習筆記.md
 enter_method.txt
+*.db-wal
+*.db-shm
+*.db-journal

@@ -1,6 +1,8 @@
 """多輪對話：外層聊天圖（掛 checkpointer、依 thread_id 區分對話），內層沿用 graph.run_agent_graph。
 
-    python -m agent_v2.chat                 # 互動；/new 開新對話、/history 看記憶、/quit 離開
+    python -m agent_v2.chat                 # 互動；/new 開新對話、/history 看記憶、/quit 離開（記憶只在這次執行中）
+    python -m agent_v2.chat --db data/chat_memory.db            # 對話存進 SQLite，下次還在
+    python -m agent_v2.chat --db data/chat_memory.db --thread abc123   # 接續某個對話；/forget 刪除目前對話
 
 為什麼分兩層：checkpointer 每一步都會把「完整狀態」序列化。內層狀態含 Gemini 回應物件與思考簽章，
 不是純資料、也不需要被記住；外層狀態只有字串與字典（問題、答案、問答歷史），才適合存。
@@ -9,8 +11,11 @@
 
 一個節點做兩件事（回答、決定要不要記住），因為中間產物是 AgentResult，不是純資料，不能放進會被存檔的狀態。
 """
+import argparse
 import logging
+import sqlite3
 import uuid
+from pathlib import Path
 from dataclasses import dataclass, field
 from typing import TypedDict
 
@@ -68,11 +73,34 @@ def build_chat_graph(client, model: str, checkpointer, max_steps: int = MAX_STEP
     return g.compile(checkpointer=checkpointer)
 
 
+def open_sqlite_saver(path):
+    """開（必要時建立）一個 SQLite 檔當 checkpointer，對話重啟後還在。呼叫端負責在結束時 close_sqlite_saver。
+
+    check_same_thread=False：LangGraph 可能在別的執行緒讀寫（例如 API 的 worker 執行緒）。
+    WAL + busy_timeout：多個行程同時寫同一個檔案時，先等鎖而不是立刻報 database is locked。
+    套件延遲載入：只用記憶體版的人不需要裝 langgraph-checkpoint-sqlite。"""
+    from langgraph.checkpoint.sqlite import SqliteSaver
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(str(path), check_same_thread=False, timeout=10)
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA busy_timeout=10000")
+    return SqliteSaver(conn)
+
+
+def close_sqlite_saver(saver) -> None:
+    try:
+        saver.conn.close()
+    except Exception as e:      # 關檔失敗不該讓程式在結束時再炸一次
+        logger.warning("關閉對話資料庫失敗：%s: %s", type(e).__name__, e)
+
+
 class Chat:
-    """對外介面。checkpointer 可替換（預設存在記憶體，程式關掉就沒了）。"""
+    """對外介面。checkpointer 可替換（預設存在記憶體，程式關掉就沒了；要持久化就傳 open_sqlite_saver(...)）。"""
 
     def __init__(self, client, model: str, checkpointer=None, max_steps: int = MAX_STEPS, on_result=None):
-        self._graph = build_chat_graph(client, model, checkpointer or MemorySaver(), max_steps, on_result)
+        self._checkpointer = checkpointer or MemorySaver()
+        self._graph = build_chat_graph(client, model, self._checkpointer, max_steps, on_result)
 
     @staticmethod
     def new_thread() -> str:
@@ -85,44 +113,68 @@ class Chat:
         return TurnResult(answer=out["answer"], stop_reason=out["stop_reason"], tools=out["tools"], guard_triggered=out["guard_triggered"],
                           leak_blocked=out["leak_blocked"], remembered=out["remembered"], history_len=len(out["history"]), usage=out["usage"])
 
+    def forget(self, thread_id: str) -> None:
+        """刪除某個對話的全部紀錄（使用者要求清除時用）。"""
+        self._checkpointer.delete_thread(thread_id)
+
     def history(self, thread_id: str) -> list:
         snap = self._graph.get_state({"configurable": {"thread_id": thread_id}})
         return list((snap.values or {}).get("history", []))
 
 
 def main():
+    ap = argparse.ArgumentParser(description="多輪對話")
+    ap.add_argument("--db", help="把對話存進這個 SQLite 檔（沒給就只存在記憶體，結束即消失）")
+    ap.add_argument("--thread", help="接續這個對話編號（要搭配 --db）")
+    args = ap.parse_args()
+    if args.thread and not args.db:
+        ap.error("--thread 要搭配 --db 才有意義（記憶體版重開就沒有舊對話）")
     logging.basicConfig(level=logging.WARNING, format="[%(levelname)s] %(name)s: %(message)s")
     logging.getLogger("httpx").setLevel(logging.WARNING)
     tools.check_tools_in_sync()
     client, model = get_client()
-    chat = Chat(client, model)
-    tid = chat.new_thread()
-    print("多輪對話（/new 開新對話｜/history 看目前記住的內容｜/quit 離開）")
-    while True:
-        try:
-            q = input(f"\n[{tid}] 你：").strip()
-        except (EOFError, KeyboardInterrupt):
-            print()
-            break
-        if not q:
-            continue
-        if q in ("/quit", "/exit"):
-            break
-        if q == "/new":
-            tid = chat.new_thread()
-            print(f"已開新對話 {tid}")
-            continue
-        if q == "/history":
-            for i, t in enumerate(chat.history(tid), 1):
-                print(f"  {i}. 問：{t['q']}\n     答：{t['a'][:80]}{'…' if len(t['a']) > 80 else ''}")
-            continue
-        try:
-            r = chat.ask(q, tid)
-        except Exception as e:
-            logger.error("這一輪失敗：%s: %s", type(e).__name__, e)
-            print("抱歉，這一輪發生錯誤，沒有寫入記憶。")
-            continue
-        print(f"\n{r.answer}\n\n  [工具：{', '.join(r.tools) or '無'}｜{'已記住' if r.remembered else '未寫入記憶'}｜記憶 {r.history_len} 輪｜{r.stop_reason}]")
+    saver = open_sqlite_saver(args.db) if args.db else None
+    chat = Chat(client, model, checkpointer=saver)
+    tid = args.thread or chat.new_thread()
+    if args.db:
+        print(f"對話會存在 {args.db}（內含你的提問與答案；/forget 可刪除目前對話）")
+        if args.thread:
+            print(f"接續對話 {tid}，目前記得 {len(chat.history(tid))} 輪")
+    print("多輪對話（/new 開新對話｜/history 看目前記住的內容｜/forget 刪除目前對話｜/quit 離開）")
+    try:
+        while True:
+            try:
+                q = input(f"\n[{tid}] 你：").strip()
+            except (EOFError, KeyboardInterrupt):
+                print()
+                break
+            if not q:
+                continue
+            if q in ("/quit", "/exit"):
+                break
+            if q == "/new":
+                tid = chat.new_thread()
+                print(f"已開新對話 {tid}")
+                continue
+            if q == "/forget":
+                chat.forget(tid)
+                print(f"已刪除對話 {tid} 的紀錄")
+                continue
+            if q == "/history":
+                for i, t in enumerate(chat.history(tid), 1):
+                    print(f"  {i}. 問：{t['q']}\n     答：{t['a'][:80]}{'…' if len(t['a']) > 80 else ''}")
+                continue
+            try:
+                r = chat.ask(q, tid)
+            except Exception as e:
+                logger.error("這一輪失敗：%s: %s", type(e).__name__, e)
+                print("抱歉，這一輪發生錯誤，沒有寫入記憶。")
+                continue
+            print(f"\n{r.answer}\n\n  [工具：{', '.join(r.tools) or '無'}｜{'已記住' if r.remembered else '未寫入記憶'}｜記憶 {r.history_len} 輪｜{r.stop_reason}]")
+    finally:
+        if saver is not None:
+            close_sqlite_saver(saver)
+            print(f"（下次接續：--db {args.db} --thread {tid}）")
 
 
 if __name__ == "__main__":

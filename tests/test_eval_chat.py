@@ -86,3 +86,35 @@ def test_pct_forms_accepts_dropped_trailing_zeros():
     from agent_v2.eval_chat import _pct_forms
     assert _pct_forms("54.00") == ["54.00", "54.0", "54"]
     assert _pct_forms("62.33") == ["62.33"]
+
+
+def _flaky(monkeypatch, code="service_error"):
+    monkeypatch.setattr(tools, "execute_tool", lambda name, args: {"error": code, "message": "暫時無法使用"})
+
+
+def test_transient_tool_error_on_last_turn_is_infra(monkeypatch):
+    _flaky(monkeypatch)
+    rec, _ = run([Resp("第一個答案"), Resp(calls=[call("get_ratio", code="2303")]), Resp("59.2，但資料服務暫時無法使用")], D)
+    assert rec["infra_error"] and not rec["passed"] and "service_error" in rec["failures"][0]
+
+
+def test_transient_tool_error_in_middle_turn_voids_the_dialogue(monkeypatch):
+    _flaky(monkeypatch, "api_unavailable")
+    rec, _ = run([Resp(calls=[call("search_documents", query="x")]), Resp("文件檢索暫時無法使用")], D)
+    assert rec["infra_error"] and len(rec["turns"]) == 1 and "第 1 輪" in rec["failures"][0]
+
+
+def test_non_transient_tool_error_still_counts_as_model_failure(monkeypatch):
+    _flaky(monkeypatch, "not_found")       # 查不到資料是正常結果，答案對錯照算
+    rec, _ = run([Resp("第一個答案"), Resp(calls=[call("get_ratio", code="9999")]), Resp("查無資料")], D)
+    assert not rec["infra_error"] and not rec["passed"]
+
+
+def test_check_run_flags_transient_error_for_single_question(monkeypatch):
+    from agent_v2 import eval as E
+    from agent_v2.loop import AgentResult
+    res = AgentResult(answer="文件檢索暫時無法使用。", stop_reason="done", tool_calls=[{"name": "search_documents", "args": {}, "error": "api_unavailable", "result": {}}])
+    chk = E.check_run({"id": "q", "question": "x", "tools_any": ["search_documents"], "cite_required": True}, res)
+    assert chk["infra_error"] and not chk["passed"]
+    ok = AgentResult(answer="a", stop_reason="done", tool_calls=[{"name": "t", "args": {}, "error": None, "result": {}}])
+    assert not E.check_run({"id": "q", "question": "x"}, ok)["infra_error"]

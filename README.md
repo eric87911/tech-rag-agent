@@ -166,7 +166,7 @@ graph TD;
 
 ### 多輪記憶
 
-`agent_v2/chat.py` 讓 Agent 記得前面問過什麼（「那聯電呢？」「上一季呢？」）。記憶放在 LangGraph 的 checkpointer（`MemorySaver`，只存在行程記憶體裡，重啟即消失），每個對話用 `thread_id` 隔離。Agent 迴圈本身（`graph.py`）只多一個 `history` 參數，守衛與提示詞不變。
+`agent_v2/chat.py` 讓 Agent 記得前面問過什麼（「那聯電呢？」「上一季呢？」）。記憶放在 LangGraph 的 checkpointer，每個對話用 `thread_id` 隔離。預設是 `MemorySaver`（只存在行程記憶體，重啟即消失）；加 `--db data/chat_memory.db` 改用 `SqliteSaver`，對話存進 SQLite 檔，重啟後用 `--thread <編號>` 接續。換 checkpointer 不動任何邏輯，因為存的只有純文字問答（可序列化）。Agent 迴圈本身（`graph.py`）只多一個 `history` 參數，守衛與提示詞不變。
 
 **記憶政策（`agent_v2/memory.py`，純函式）：**
 
@@ -192,7 +192,9 @@ graph TD;
 
 **限制：**
 
-- 記憶只在行程內，沒有持久化（`SqliteSaver` 未做）；API 多 worker 時各自獨立。
+- **持久化（`--db`）只做了命令列對話**：`SqliteSaver` 的離線測試涵蓋重啟後歷史還在、各對話互不混入、未記住的輪次重啟後仍不存在、`/forget` 只刪該對話、別的執行緒可讀寫（用刻意破壞實作確認測試會失敗）；**沒有實測多個行程同時寫同一個檔**（只設了 WAL 與等鎖時間），也沒有接到 API。
+- 對話檔內是使用者的提問與答案，沒有加密、沒有到期自動清除，只能 `/forget` 手動刪；`.db` 與 WAL 暫存檔已加進 `.gitignore`。
+- `SqliteSaver` 每一步存一份完整狀態，檔案會隨輪數成長（每份歷史上限 6000 字元，所以成長有限，但沒有清理舊版本）。
 - 跨輪注入：若模型對注入回覆「拒絕」並正常結束，那一輪會存進歷史；只用對話題（`c_injection_then_normal`、`ch_injection_followup`）測過，沒有更多攻擊變化。
 - 對話最多保留 4 輪，更早的內容會忘記。
 - 樣本小（17 段對話），temperature 為 0 時重複不獨立；留存集只有 7 段；`guard` 欄位只記數字守衛，文件守衛的觸發沒有記錄。
@@ -221,7 +223,8 @@ python -m agent_v2.eval --set docs --runs 1
 # LangGraph 版（需要 pip install -r requirements-dev.txt）
 python -m agent_v2.graph "台積電 2025 年各季毛利率趨勢？"
 python -m agent_v2.equiv --dry-run        # loop 與 graph 的等價性對照（會呼叫 Gemini）
-python -m agent_v2.chat                   # 多輪對話（/new /history /quit）
+python -m agent_v2.chat                   # 多輪對話（/new /history /forget /quit）
+python -m agent_v2.chat --db data/chat_memory.db [--thread 編號]   # 對話存進 SQLite、可接續
 python -m agent_v2.eval_chat --sets dev --dry-run   # 多輪記憶評估
 ```
 
@@ -253,7 +256,7 @@ image 只含程式碼；財報資料庫（唯讀）與向量庫以 volume 掛入
 - 限流狀態存在記憶體：單一 worker 準確，多 worker 時實際上限會乘上 worker 數（精確限流需共用儲存，如 Redis）。
 - HTTPS 由 Caddy 反向代理提供（見 `deploy/`），目前只在本機 Ubuntu 虛擬機以內部 CA 驗證過；公開網域上的 Let's Encrypt 流程與防火牆尚未驗證；自動啟動只驗證了虛擬機停止再啟動，未做整機重開。`/openapi.json` 與 `/docs` 目前是公開的。
 - 股票代號若不加括號寫在答案裡，數字溯源保險不會檢查到。
-- 文件檢索只涵蓋台積電；多輪記憶只存在行程記憶體（見「多輪記憶」）；回答偏長，沒有長度規則。
+- 文件檢索只涵蓋台積電；多輪記憶預設只存在行程記憶體，可用 `--db` 存進 SQLite（見「多輪記憶」）；回答偏長，沒有長度規則。
 - 資料品質：10 家公司缺 2025Q4 營收；17 筆毛利與（營收 − 成本）不一致（皆為光寶）；與官方數字的核對只做了台積電。
 - 法說會逐字稿有編碼亂碼，需重建向量庫才能修正。
 - 核心題在看過結果後調整過，有過度擬合的風險；留存集的樣本也很小。

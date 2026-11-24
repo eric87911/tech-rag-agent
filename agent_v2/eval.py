@@ -15,6 +15,7 @@ from pathlib import Path
 import httpx
 
 from agent_v2 import loop, tools
+from agent_v2.memory import TRANSIENT_TOOL_ERRORS
 
 logger = logging.getLogger(__name__)
 ROOT = Path(__file__).resolve().parent.parent
@@ -298,11 +299,23 @@ def check_citations(answer: str, tool_calls: list) -> tuple:
     return cites, bad
 
 
+def transient_tool_error(res):
+    """這次執行中，工具層有沒有回報「暫時性」故障（資料服務連不上／503／限流）。有的話回傳第一個錯誤代碼，否則 None。
+    這種執行的答案多半是「文件檢索暫時無法使用」，那是環境問題，不是模型答錯，不該算進準確率。"""
+    for c in res.tool_calls:
+        if c.get("error") in TRANSIENT_TOOL_ERRORS:
+            return c["error"]
+    return None
+
+
 def check_run(q: dict, res) -> dict:
     names = [c["name"] for c in res.tool_calls]
     answer, failures = _norm(res.answer), []
     if res.stop_reason == "error":
         return {"passed": False, "infra_error": True, "failures": ["Gemini 呼叫失敗（不計入準確率）"], "unsourced": []}
+    code = transient_tool_error(res)
+    if code:
+        return {"passed": False, "infra_error": True, "failures": [f"工具回報暫時性故障（{code}），不計入準確率"], "unsourced": []}
     if res.stop_reason != "done":
         failures.append(f"未正常結束：{res.stop_reason}")
     if q.get("tools_any") and not set(names) & set(q["tools_any"]):
