@@ -113,6 +113,49 @@ flowchart TD
 - v1 的 temperature 為 0.2、v2 為 0；文件題的答案內容正確性只人工抽查了 2 題（`hd_capex`、`hd_2nm`，兩邊內容一致），沒有自動評分。
 - 共 36 題、題數很小，通過率差距不具統計意義。
 
+### LangGraph 版（等價改寫）
+
+`agent_v2/graph.py` 把手寫的 Agent 迴圈改寫成 LangGraph 狀態圖：`loop.py` 的每一段 if／continue／return 對應一個節點或一條邊，**行為不變，目的是讓流程可視、每個節點可單獨測試，並為多輪記憶（checkpointer）鋪路**。Gemini 函式呼叫與 `tools.py` 維持手寫，LangGraph 只負責流程；`loop.py` 不修改，留作比對基準，守衛函式、提示詞與 `AgentResult` 直接 import、不複製。
+
+```mermaid
+graph TD;
+	__start__([start]) --> call_model;
+	call_model -->|要呼叫工具| run_tools;
+	call_model -->|最終答案| guard_empty;
+	run_tools -->|步數未滿| call_model;
+	run_tools -->|步數用完| max_steps;
+	guard_empty --> guard_ungrounded --> guard_leak --> guard_docs --> finish;
+	guard_empty -.->|空回應| __end__;
+	guard_ungrounded -.->|要求重試| nudge;
+	guard_docs -.->|要求重試| nudge;
+	nudge -->|步數未滿| call_model;
+	nudge -->|步數用完| max_steps;
+	guard_leak -.->|洩漏| __end__;
+	finish --> __end__;
+	max_steps --> __end__;
+```
+
+驗證分兩層：
+
+1. **離線差分測試**（`tests/test_graph.py`，18 項）：同一份假模型腳本分別餵給 `loop.run_agent` 與 `graph.run_agent_graph`，比較答案、停止原因、工具呼叫與結果、用量、模型每次看到的對話長度與 temperature。涵蓋工具迴圈、同輪多工具、兩種守衛重試、空回應重試、Gemini 例外、洩漏攔截、重複呼叫、步數上限。刻意破壞步數判斷或守衛順序，測試都會失敗。
+2. **實測對照**（`agent_v2/equiv.py`）：43 題 × 兩種實作 × 3 次，用 `eval.py` 原本的完整檢查：
+
+| 題組 | loop | graph |
+|---|---|---|
+| 財報留存集（10×3）| 30/30 | 29/30 |
+| 文件開發集＋文件留存集（11×3）| 33/33 | 33/33 |
+| 核心題（15×3）| 44/45 | 44/45 |
+| 提示詞注入（7×3）| 20/21 | 21/21 |
+| 合計 | 127/129 | 127/129 |
+
+工具呼叫序列不一致的比例，graph 對 loop 與 loop 自己兩次之間相同（核心＋注入：各 2/66），洩漏攔截次數也相同（19 對 19）。**結論只有「在這批題目與次數下看不出差異」，不是「更好」，也不是「證明完全相同」。**
+
+限制：
+- graph 在財報留存集有 1 次失敗（`h_multi_company`，連續多次 `search_company` 用完步數上限），loop 同題 3 次都過。離線測試證明給相同模型回應時兩邊步數計算一致，所以我判斷是模型走了不同路徑，但**這只發生 1 次，未證實**。
+- 「沒查資料就報數字」的守衛在實測中 0 次觸發，只有離線測試覆蓋；「沒搜尋就說文件庫沒有」的提醒沒有被記錄，實測是否觸發無從得知。
+- 兩種實作各跑 3 次，temperature 為 0 時重複次數的獨立性有限。
+- 第一次對照時文件題因 API 容器仍用已作廢的金鑰而全數失敗（「文件檢索暫時無法使用」被算成答案錯誤，兩邊相同），重建容器後重跑；評估腳本尚未把這類錯誤歸為基礎設施失敗。
+
 ### 過程中發現並修正的問題
 
 - **「數字 + 原因」題整題放棄**：缺少比率工具，模型找不到合適工具就不答 → 新增 `get_ratio`。
@@ -141,6 +184,10 @@ python -m agent_v2.loop "台積電 2025 年各季毛利率趨勢？"
 # 評估（每次都會呼叫 Gemini 並計費，先用 --runs 1）
 python -m agent_v2.eval --set core --runs 1
 python -m agent_v2.eval --set docs --runs 1
+
+# LangGraph 版（需要 pip install -r requirements-dev.txt）
+python -m agent_v2.graph "台積電 2025 年各季毛利率趨勢？"
+python -m agent_v2.equiv --dry-run        # loop 與 graph 的等價性對照（會呼叫 Gemini）
 ```
 
 評估結果（含每次的完整答案與 token 用量）存在 `eval_results/`。
@@ -188,8 +235,11 @@ image 只含程式碼；財報資料庫（唯讀）與向量庫以 volume 掛入
 │   └── schemas.py       # 回應格式
 ├── agent_v2/
 │   ├── tools.py         # 工具宣告、HTTP 呼叫、逾時、與 API 一致性檢查
-│   ├── loop.py          # Agent 迴圈與防護層
-│   └── eval.py          # 評估腳本
+│   ├── loop.py          # Agent 迴圈與防護層（手寫版，也是等價性比對的基準）
+│   ├── graph.py         # LangGraph 版，行為與 loop.py 等價
+│   ├── eval.py          # 評估腳本
+│   ├── compare.py       # v1 對 v2 同題對照（中立評分）
+│   └── equiv.py         # loop 對 graph 等價性驗證
 └── eval_results/        # 評估結果（JSON）
 ```
 
