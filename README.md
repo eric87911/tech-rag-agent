@@ -199,6 +199,136 @@ graph TD;
 - 對話最多保留 4 輪，更早的內容會忘記。
 - 樣本小（17 段對話），temperature 為 0 時重複不獨立；留存集只有 7 段；`guard` 欄位只記數字守衛，文件守衛的觸發沒有記錄。
 
+### 範例：一個問題走過哪些節點
+
+下面三個範例都是**實際執行的紀錄**（2026-11-24，呼叫真的 Gemini 與資料 API），用 `python -m agent_v2.trace "問題"` 產生：它用 LangGraph 的 `stream_mode="updates"` 記錄每個節點執行完更新了什麼，所以畫出來的是真的走過的路徑，不是從程式推導的預期路徑。藍色是模型與工具，橘色是守衛，灰色是結束。
+
+#### 範例 1：只查數字
+
+問題：「台積電 2025Q4 的營收是多少？」
+
+```mermaid
+flowchart TD
+    q(["問題<br/>台積電 2025Q4 的營收是多少？"])
+    n1["1. call_model<br/>第 1 次呼叫：要求工具 get_financials(code=2330, item=revenue, period_from=2025Q4, period_to=2025Q4)"]:::model
+    q --> n1
+    n2["2. run_tools<br/>✅ get_financials(code=2330, item=revenue, period_from=2025Q4, period_to=2025Q4)"]:::model
+    n1 --> n2
+    n3["3. call_model<br/>第 2 次呼叫：給出文字答案"]:::model
+    n2 --> n3
+    n4["4. guard_empty<br/>通過"]:::guard
+    n3 --> n4
+    n5["5. guard_ungrounded<br/>通過"]:::guard
+    n4 --> n5
+    n6["6. guard_leak<br/>通過"]:::guard
+    n5 --> n6
+    n7["7. guard_docs<br/>通過"]:::guard
+    n6 --> n7
+    n8["8. finish<br/>全部守衛通過，回傳答案"]:::done
+    n7 --> n8
+    a(["答案<br/>台積電 2025Q4 的營收是 1.05 兆元 (1,046,090,421 新台幣千元)。"])
+    n8 --> a
+    classDef model fill:#e0f2fe,stroke:#0369a1,color:#0c4a6e
+    classDef guard fill:#ffedd5,stroke:#c2410c,color:#7c2d12
+    classDef done fill:#f3f4f6,stroke:#6b7280,color:#111827
+```
+
+模型直接用代號 `2330` 呼叫 `get_financials`，沒有先 `search_company`；兩次呼叫模型、一次工具、四道守衛全部通過。答案裡的數字來自工具回傳，`guard_ungrounded` 檢查的就是這件事。
+
+#### 範例 2：數字加觀點（對應 v1 的 `both`）
+
+問題：「台積電毛利率為什麼一直上升？」
+
+```mermaid
+flowchart TD
+    q(["問題<br/>台積電毛利率為什麼一直上升？"])
+    n1["1. call_model<br/>第 1 次呼叫：要求工具 search_company(q=台積電)"]:::model
+    q --> n1
+    n2["2. run_tools<br/>✅ search_company(q=台積電)"]:::model
+    n1 --> n2
+    n3["3. call_model<br/>第 2 次呼叫：要求工具 get_ratio(code=2330, metric=gross_margin)"]:::model
+    n2 --> n3
+    n4["4. run_tools<br/>✅ get_ratio(code=2330, metric=gross_margin)"]:::model
+    n3 --> n4
+    n5["5. call_model<br/>第 3 次呼叫：要求工具 search_documents(company=台積電, q=毛利率上升原因)"]:::model
+    n4 --> n5
+    n6["6. run_tools<br/>✅ search_documents(company=台積電, q=毛利率上升原因)"]:::model
+    n5 --> n6
+    n7["7. call_model<br/>第 4 次呼叫：給出文字答案"]:::model
+    n6 --> n7
+    n8["8. guard_empty<br/>通過"]:::guard
+    n7 --> n8
+    n9["9. guard_ungrounded<br/>通過"]:::guard
+    n8 --> n9
+    n10["10. guard_leak<br/>通過"]:::guard
+    n9 --> n10
+    n11["11. guard_docs<br/>通過"]:::guard
+    n10 --> n11
+    n12["12. finish<br/>全部守衛通過，回傳答案"]:::done
+    n11 --> n12
+    a(["答案<br/>台積電（2330）的毛利率在 2021Q1 到 2025Q4 期間，從 52.38% 上升到 62.33%，增加了 9.…"])
+    n12 --> a
+    classDef model fill:#e0f2fe,stroke:#0369a1,color:#0c4a6e
+    classDef guard fill:#ffedd5,stroke:#c2410c,color:#7c2d12
+    classDef done fill:#f3f4f6,stroke:#6b7280,color:#111827
+```
+
+完整答案：
+
+> 台積電（2330）的毛利率在 2021Q1 到 2025Q4 期間，從 52.38% 上升到 62.33%，增加了 9.95 個百分點。其中，2025Q4 的 62.33% 是這段期間的最高點，而最低點是 2021Q2 的 50.04%。
+>
+> 根據台積電 2026Q1 法說會的資料，毛利率上升的主要原因包括：
+> - **成本改善努力**：公司在成本控制方面持續努力。
+> - **整體產能利用率提升**：產能利用率的提高有助於分攤固定成本。
+> - **較有利的匯率**：匯率變動對毛利率產生正面影響。
+> - **生產力提升**：包含在成本改善努力中，提高生產效率。
+>
+> 台積電也表示，已上修 2024 到 2029 年的長期毛利率目標，預計在景氣循環中將維持 56% 以上（來源：台積電 2026Q1 法說會逐字稿（第三方整理）｜Wendell Huang, Q&A｜Jim Fontanelli 提問，Jeff Su、Wendell Huang、C.C. Wei 回答）。
+
+先用 `search_company` 確認公司，再用 `get_ratio` 查毛利率走勢（問題問「為什麼」，先確認前提「毛利率真的上升」），最後用 `search_documents` 查原因。數字來自 `get_ratio`，原因來自文件檢索，兩者由模型在最後一次呼叫時合成一段話；守衛只檢查、不改寫。
+
+#### 範例 3：多輪追問
+
+先問範例 1 的問題，再接著問：「那毛利率呢？」（省略了公司名稱與期間）。第一題的路徑與範例 1 相同，答案「寫進記憶」後，第二題帶著 1 輪記憶（只有問題與答案的純文字）執行：
+
+```mermaid
+flowchart TD
+    q(["問題<br/>那毛利率呢？"])
+    n1["1. call_model<br/>第 1 次呼叫：要求工具 search_company(q=台積電)"]:::model
+    q --> n1
+    n2["2. run_tools<br/>✅ search_company(q=台積電)"]:::model
+    n1 --> n2
+    n3["3. call_model<br/>第 2 次呼叫：要求工具 get_ratio(code=2330, metric=gross_margin, period_from=2025Q4, period_to=2025Q4)"]:::model
+    n2 --> n3
+    n4["4. run_tools<br/>✅ get_ratio(code=2330, metric=gross_margin, period_from=2025Q4, period_to=2025Q4)"]:::model
+    n3 --> n4
+    n5["5. call_model<br/>第 3 次呼叫：給出文字答案"]:::model
+    n4 --> n5
+    n6["6. guard_empty<br/>通過"]:::guard
+    n5 --> n6
+    n7["7. guard_ungrounded<br/>通過"]:::guard
+    n6 --> n7
+    n8["8. guard_leak<br/>通過"]:::guard
+    n7 --> n8
+    n9["9. guard_docs<br/>通過"]:::guard
+    n8 --> n9
+    n10["10. finish<br/>全部守衛通過，回傳答案"]:::done
+    n9 --> n10
+    a(["答案<br/>台積電 2025Q4 的毛利率是 62.33%。"])
+    n10 --> a
+    classDef model fill:#e0f2fe,stroke:#0369a1,color:#0c4a6e
+    classDef guard fill:#ffedd5,stroke:#c2410c,color:#7c2d12
+    classDef done fill:#f3f4f6,stroke:#6b7280,color:#111827
+```
+
+模型從記憶的文字裡知道「那」指台積電與 2025Q4，但**仍然重新查了一次**（`search_company`、`get_ratio`）：記憶不帶工具結果，這一輪的數字必須有這一輪的工具回傳，`guard_ungrounded` 才會放行。這也是為什麼多輪不會讓舊數字悄悄沿用。
+
+#### 這些範例沒有證明什麼
+
+- **每個範例只是一次實際執行**。Gemini 在其他次可能走出不同的路徑（例如多呼叫一次工具，或先 `search_company`）；這裡畫的是那一次走到的。
+- **三次執行守衛全部通過，所以沒有展示「守衛不通過」的路徑**（`nudge` 回到 `call_model`、守衛放棄、步數用完）。那些路徑由 `tests/test_graph.py` 與 `tests/test_trace.py` 用假的模型腳本驗證，不是實際 Gemini 的紀錄。
+- **答案內容沒有逐句核對原文**。範例 2 的原因來自第三方整理的法說會逐字稿，守衛只檢查數字有工具來源、引用的來源存在，不檢查「來源是否真的支持那句話」（見「v2 已知限制」）。
+
 ## 啟動 v2（macOS）
 
 先在 `.env` 加上 API 金鑰（至少 16 字元），服務端與 Agent 共用：
@@ -226,6 +356,10 @@ python -m agent_v2.equiv --dry-run        # loop 與 graph 的等價性對照（
 python -m agent_v2.chat                   # 多輪對話（/new /history /forget /quit）
 python -m agent_v2.chat --db data/chat_memory.db [--thread 編號]   # 對話存進 SQLite、可接續
 python -m agent_v2.eval_chat --sets dev --dry-run   # 多輪記憶評估
+python -m agent_v2.trace "台積電毛利率為什麼一直上升？"   # 追蹤一個問題走過哪些節點，輸出 Mermaid 圖（會呼叫 Gemini）
+
+# v2 介面（Streamlit；資料 API 要先在跑）
+streamlit run app_v2.py                   # 多輪對話，可展開看每輪的工具呼叫、守衛、記憶
 ```
 
 評估結果（含每次的完整答案與 token 用量）存在 `eval_results/`。
@@ -256,6 +390,7 @@ image 只含程式碼；財報資料庫（唯讀）與向量庫以 volume 掛入
 - 限流狀態存在記憶體：單一 worker 準確，多 worker 時實際上限會乘上 worker 數（精確限流需共用儲存，如 Redis）。
 - HTTPS 由 Caddy 反向代理提供（見 `deploy/`），目前只在本機 Ubuntu 虛擬機以內部 CA 驗證過；公開網域上的 Let's Encrypt 流程與防火牆尚未驗證；自動啟動只驗證了虛擬機停止再啟動，未做整機重開。`/openapi.json` 與 `/docs` 目前是公開的。
 - 股票代號若不加括號寫在答案裡，數字溯源保險不會檢查到。
+- **v2 介面（`app_v2.py`）只用假的 Chat 與 API 做過接線測試（`tests/test_app_v2.py`）；與真實 Gemini、真實 API 的操作要在本機跑過才算驗證。** 介面沒有登入：對話只靠編號區分，知道編號的人就能接續；目前不接 API，是直接在行程內呼叫 Agent。
 - 文件檢索只涵蓋台積電；多輪記憶預設只存在行程記憶體，可用 `--db` 存進 SQLite（見「多輪記憶」）；回答偏長，沒有長度規則。
 - 資料品質：10 家公司缺 2025Q4 營收；17 筆毛利與（營收 − 成本）不一致（皆為光寶）；與官方數字的核對只做了台積電。
 - 法說會逐字稿有編碼亂碼，需重建向量庫才能修正。
@@ -280,7 +415,10 @@ image 只含程式碼；財報資料庫（唯讀）與向量庫以 volume 掛入
 │   ├── equiv.py         # loop 對 graph 等價性驗證
 │   ├── memory.py        # 多輪記憶政策（純函式）
 │   ├── chat.py          # 多輪對話（LangGraph checkpointer、REPL）
+│   ├── ui_format.py     # v2 介面要顯示的內容（純函式）
+│   ├── trace.py         # 追蹤一個問題實際走過的節點（文字＋Mermaid）
 │   └── eval_chat.py     # 多輪記憶評估
+├── app_v2.py            # v2 Streamlit 介面（多輪、工具與守衛可視化）
 └── eval_results/        # 評估結果（JSON）
 ```
 

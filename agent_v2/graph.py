@@ -196,17 +196,25 @@ def build_graph(client, model: str):
     return g.compile(checkpointer=False)
 
 
-def run_agent_graph(question: str, client, model: str, max_steps: int = MAX_STEPS, history: list | None = None) -> AgentResult:
-    """與 loop.run_agent 相同的簽名與回傳型別，可以直接互換；history 為 None 時行為與舊版完全一致。
-    history：[{"q","a"},...]，先前幾輪的純文字問答（見 memory.py），放在這一輪的問題之前"""
+def initial_state(question: str, max_steps: int = MAX_STEPS, history: list | None = None) -> AgentState:
+    """一次問答的起始狀態。run_agent_graph 與 trace.py 共用，確保「追蹤」跑的是同一個起點。"""
     system = SYSTEM_PROMPT.format(today=date.today().isoformat(), latest=_latest_period())
-    init: AgentState = {
+    return {
         "system": system, "contents": memory.to_contents(history) + [types.Content(role="user", parts=[types.Part.from_text(text=question)])],
         "tool_log": [], "seen": [], "step": 0, "max_steps": max_steps, "nudged": False, "docs_nudged": False,
         "empty_retries": 0, "usage": {"calls": 0, "prompt": 0, "cached": 0, "output": 0, "thinking": 0}, "pending_nudge": "",
     }
+
+
+def run_config(max_steps: int) -> dict:
     # 預設 recursion_limit 是 25；每一步最多經過 call_model + 4 個守衛 + nudge，步數大時會誤觸，所以依步數放大
-    final = build_graph(client, model).invoke(init, config={"recursion_limit": max_steps * 8 + 10})
+    return {"recursion_limit": max_steps * 8 + 10}
+
+
+def run_agent_graph(question: str, client, model: str, max_steps: int = MAX_STEPS, history: list | None = None) -> AgentResult:
+    """與 loop.run_agent 相同的簽名與回傳型別，可以直接互換；history 為 None 時行為與舊版完全一致。
+    history：[{"q","a"},...]，先前幾輪的純文字問答（見 memory.py），放在這一輪的問題之前"""
+    final = build_graph(client, model).invoke(initial_state(question, max_steps, history), config=run_config(max_steps))
     return final["result"]
 
 
